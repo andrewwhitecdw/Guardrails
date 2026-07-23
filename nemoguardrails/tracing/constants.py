@@ -242,7 +242,7 @@ class SpanNames:
 
 
 class MetricNames:
-    """OTEL metric names emitted by the IORails engine.
+    """OTEL metric names emitted by Guardrails engines.
 
     These names are part of the library's public API — customers point
     dashboards and alerts at them.  Tests deliberately assert on the raw
@@ -266,9 +266,9 @@ class MetricNames:
     STREAM_ACTIVE = "guardrails.stream.active"
     STREAM_REJECTIONS = "guardrails.stream.rejections"
 
-    # OTEL GenAI semantic-convention metric names emitted by IORails for
-    # downstream LLM calls. These names are mandated by OTEL hence ``gen_ai``
-    # prefix separate to ``guardrails`` metrics above.
+    # OTEL GenAI semantic-convention metric names emitted for downstream LLM
+    # calls. These names are mandated by OTEL hence ``gen_ai`` prefix separate
+    # to ``guardrails`` metrics above.
     GEN_AI_CLIENT_TOKEN_USAGE = "gen_ai.client.token.usage"
     GEN_AI_CLIENT_OPERATION_DURATION = "gen_ai.client.operation.duration"
     GEN_AI_CLIENT_OPERATION_TIME_TO_FIRST_CHUNK = "gen_ai.client.operation.time_to_first_chunk"

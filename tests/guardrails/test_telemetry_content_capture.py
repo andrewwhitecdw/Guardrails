@@ -31,15 +31,17 @@ from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
 from nemoguardrails.guardrails.telemetry import (
+    is_content_capture_enabled,
+    set_rail_content,
+    set_request_content,
+)
+from nemoguardrails.llm.telemetry import (
     _non_system_input_messages,
     _set_llm_call_content_events,
     _set_llm_call_content_json,
     _system_parts_from_messages,
     _use_json_span_format,
-    is_content_capture_enabled,
     set_llm_call_content,
-    set_rail_content,
-    set_request_content,
 )
 from nemoguardrails.rails.llm.config import TracingConfig
 from nemoguardrails.tracing.constants import (

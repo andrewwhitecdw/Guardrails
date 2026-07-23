@@ -27,8 +27,10 @@ from nemoguardrails.guardrails.guardrails_types import RailDirection
 from nemoguardrails.guardrails.telemetry import (
     action_span,
     api_call_span,
-    llm_call_span,
     rail_span,
+)
+from nemoguardrails.llm.telemetry import (
+    llm_call_span,
     set_llm_request_attributes,
     set_llm_response_attributes,
 )
