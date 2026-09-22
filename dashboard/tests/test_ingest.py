@@ -17,8 +17,10 @@ import json
 import os
 import time
 
+import httpx
+import respx
 from backend.db import Database, RecordWriter
-from backend.ingest import TraceIngester
+from backend.ingest import TraceIngester, parse_prometheus_text, scrape_prometheus_once
 
 TRACE_LINE = {
     "schema_version": "2.0",
@@ -209,10 +211,6 @@ async def test_equal_size_rewrite_with_fresh_mtime_is_reingested(tmp_path):
     await writer.stop()
     db.close()
 
-import httpx
-import respx
-
-from backend.ingest import parse_prometheus_text, scrape_prometheus_once
 
 PROM_TEXT = """# HELP guardrails_nonstream_queued Pending non-streaming requests.
 # TYPE guardrails_nonstream_queued gauge
@@ -233,9 +231,7 @@ def test_parse_prometheus_text():
     assert by_name["guardrails_nonstream_queued"] == [({}, 3.0)]
     assert by_name["guardrails_nonstream_active"] == [({}, 2.0)]
     assert by_name["guardrails_nonstream_rejections_total"] == [({}, 7.0)]
-    assert by_name["http_requests_total"] == [
-        ({'handler': '/v1/chat/completions', 'code': '200'}, 42.5)
-    ]
+    assert by_name["http_requests_total"] == [({"handler": "/v1/chat/completions", "code": "200"}, 42.5)]
 
 
 def test_parse_skips_comments_and_empty_lines():

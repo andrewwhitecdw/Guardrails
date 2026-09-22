@@ -105,6 +105,7 @@ class TraceIngester:
 def now_ms() -> int:
     return int(time.time() * 1000)
 
+
 _SAMPLE_RE = re.compile(r"^([a-zA-Z_:][a-zA-Z0-9_:]*)(?:\{([^}]*)\})?\s+(\S+)")
 _LABEL_RE = re.compile(r'(\w+)="((?:[^"\\]|\\.)*)"')
 
@@ -137,10 +138,7 @@ async def scrape_prometheus_once(db: Database, http: httpx.AsyncClient, prom_url
     if resp.status_code != 200:
         return
     ts = now_ms()
-    samples = [
-        (name, json.dumps(labels), ts, value)
-        for name, labels, value in parse_prometheus_text(resp.text)
-    ]
+    samples = [(name, json.dumps(labels), ts, value) for name, labels, value in parse_prometheus_text(resp.text)]
     db.insert_samples(samples)
 
 
