@@ -58,16 +58,29 @@ export default function RequestsPage() {
   useEffect(() => {
     if (!selectedId) {
       setSelected(null);
+      setError(null);
       return;
     }
+    let stale = false;
     api
       .record(selectedId)
-      .then(setSelected)
-      .catch((e) => setError((e as Error).message));
+      .then((rec) => {
+        if (!stale) {
+          setSelected(rec);
+          setError(null);
+        }
+      })
+      .catch((e) => {
+        if (!stale) setError((e as Error).message);
+      });
+    return () => {
+      stale = true;
+    };
   }, [selectedId]);
 
   const update = (patch: Partial<typeof filters>) => {
     setOffset(0);
+    setSelectedId(null);
     setFilters((f) => ({ ...f, ...patch }));
   };
 
@@ -76,7 +89,7 @@ export default function RequestsPage() {
       <h1>Requests</h1>
       {error && <p style={{ color: "#b3261e" }}>{error}</p>}
       <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
-        <select value={rangeMs} onChange={(e) => { setOffset(0); setRangeMs(Number(e.target.value)); }}>
+        <select value={rangeMs} onChange={(e) => { setOffset(0); setSelectedId(null); setRangeMs(Number(e.target.value)); }}>
           {RANGES.map(([label, ms]) => (
             <option key={label} value={ms}>
               {label}
@@ -151,6 +164,7 @@ export default function RequestsPage() {
           ))}
         </tbody>
       </table>
+      {data.items.length === 0 && !error && <p style={{ color: "#5f6368" }}>No records match the current filters.</p>}
       <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
         <button disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}>
           Previous
