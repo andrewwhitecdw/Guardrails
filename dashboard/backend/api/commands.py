@@ -105,7 +105,18 @@ async def run_challenges(request: Request):
         chat_body: dict = {"messages": [{"role": "user", "content": prompt}]}
         if config_id:
             chat_body["guardrails"] = {"config_id": config_id}
-        response = await forward_chat(deps, chat_body, source="challenge")
+        try:
+            response = await forward_chat(deps, chat_body, source="challenge")
+        except HTTPException as exc:
+            results.append(
+                {
+                    "challenge_id": challenge.get("id"),
+                    "challenge": challenge,
+                    "status_code": exc.status_code,
+                    "response": {"error": str(exc.detail)},
+                }
+            )
+            continue
         content = b""
         if hasattr(response, "body"):
             content = response.body

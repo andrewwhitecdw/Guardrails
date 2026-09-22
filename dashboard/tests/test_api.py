@@ -212,3 +212,30 @@ def test_admin_reload_with_hook_forwards(tmp_path):
         assert resp.status_code == 200
         assert resp.json() == {"reloaded": ["demo"]}
         assert route.called
+
+
+@respx.mock
+def test_challenges_run_isolates_upstream_errors(tmp_path):
+    with build_client(tmp_path) as client:
+        respx.get(f"{BASE}/v1/challenges").mock(
+            return_value=httpx.Response(200, json=[{"id": "c1", "input": "hack"}, {"id": "c2", "input": "spam"}])
+        )
+        route = respx.post(f"{BASE}/v1/chat/completions")
+        route.side_effect = [
+            httpx.ConnectError("refused"),
+            httpx.Response(200, json=CHAT_OK),
+        ]
+        resp = client.post(
+            "/api/commands/challenges/run",
+            json={"config_id": "demo", "challenge_ids": ["c1", "c2"]},
+        )
+        assert resp.status_code == 200
+        results = resp.json()["results"]
+        assert len(results) == 2
+        failed = next(r for r in results if r["challenge_id"] == "c1")
+        assert failed["status_code"] == 502
+        assert "error" in failed["response"]
+        succeeded = next(r for r in results if r["challenge_id"] == "c2")
+        assert succeeded["status_code"] == 200
+        items, total = client.app.state.deps.db.list_records(source="challenge")
+        assert total == 1
