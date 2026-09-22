@@ -17,7 +17,10 @@ import asyncio
 import glob
 import json
 import os
+import re
 import time
+
+import httpx
 
 from .db import Database, RecordWriter
 from .normalize import record_from_trace_line
@@ -101,3 +104,47 @@ class TraceIngester:
 
 def now_ms() -> int:
     return int(time.time() * 1000)
+
+_SAMPLE_RE = re.compile(r"^([a-zA-Z_:][a-zA-Z0-9_:]*)(?:\{([^}]*)\})?\s+(\S+)")
+_LABEL_RE = re.compile(r'(\w+)="((?:[^"\\]|\\.)*)"')
+
+
+def parse_prometheus_text(text: str) -> list[tuple[str, dict, float]]:
+    """Parse the Prometheus text exposition format into (name, labels, value)."""
+    samples: list[tuple[str, dict, float]] = []
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        match = _SAMPLE_RE.match(line)
+        if not match:
+            continue
+        name, label_src, value_src = match.groups()
+        try:
+            value = float(value_src)
+        except ValueError:
+            continue
+        labels = {k: v.replace('\\"', '"') for k, v in _LABEL_RE.findall(label_src or "")}
+        samples.append((name, labels, value))
+    return samples
+
+
+async def scrape_prometheus_once(db: Database, http: httpx.AsyncClient, prom_url: str):
+    try:
+        resp = await http.get(prom_url)
+    except httpx.HTTPError:
+        return
+    if resp.status_code != 200:
+        return
+    ts = now_ms()
+    samples = [
+        (name, json.dumps(labels), ts, value)
+        for name, labels, value in parse_prometheus_text(resp.text)
+    ]
+    db.insert_samples(samples)
+
+
+async def prometheus_loop(db: Database, http: httpx.AsyncClient, prom_url: str, interval: float):
+    while True:
+        await scrape_prometheus_once(db, http, prom_url)
+        await asyncio.sleep(interval)

@@ -208,3 +208,61 @@ async def test_equal_size_rewrite_with_fresh_mtime_is_reingested(tmp_path):
     assert total == 2
     await writer.stop()
     db.close()
+
+import httpx
+import respx
+
+from backend.ingest import parse_prometheus_text, scrape_prometheus_once
+
+PROM_TEXT = """# HELP guardrails_nonstream_queued Pending non-streaming requests.
+# TYPE guardrails_nonstream_queued gauge
+guardrails_nonstream_queued 3
+# TYPE guardrails_nonstream_active gauge
+guardrails_nonstream_active 2
+# TYPE guardrails_nonstream_rejections counter
+guardrails_nonstream_rejections_total 7
+http_requests_total{handler="/v1/chat/completions",code="200"} 42.5
+"""
+
+
+def test_parse_prometheus_text():
+    samples = parse_prometheus_text(PROM_TEXT)
+    by_name = {}
+    for name, labels, value in samples:
+        by_name.setdefault(name, []).append((labels, value))
+    assert by_name["guardrails_nonstream_queued"] == [({}, 3.0)]
+    assert by_name["guardrails_nonstream_active"] == [({}, 2.0)]
+    assert by_name["guardrails_nonstream_rejections_total"] == [({}, 7.0)]
+    assert by_name["http_requests_total"] == [
+        ({'handler': '/v1/chat/completions', 'code': '200'}, 42.5)
+    ]
+
+
+def test_parse_skips_comments_and_empty_lines():
+    assert parse_prometheus_text("# comment\n\n   \nmetric_a 1\n") == [("metric_a", {}, 1.0)]
+
+
+@respx.mock
+async def test_scrape_prometheus_once(tmp_path):
+    respx.get("http://guardrails:9464/metrics").mock(return_value=httpx.Response(200, text=PROM_TEXT))
+    db = Database(str(tmp_path / "d.db"))
+    http = httpx.AsyncClient()
+    await scrape_prometheus_once(db, http, "http://guardrails:9464/metrics")
+    names = db.metric_names()
+    assert "guardrails_nonstream_queued" in names
+    assert "guardrails_nonstream_rejections_total" in names
+    series = db.metric_series("guardrails_nonstream", 0, 9_999_999_999_999)
+    assert len(series) == 3
+    await http.aclose()
+    db.close()
+
+
+@respx.mock
+async def test_scrape_failure_is_silent(tmp_path):
+    respx.get("http://guardrails:9464/metrics").mock(side_effect=httpx.ConnectError("refused"))
+    db = Database(str(tmp_path / "d.db"))
+    http = httpx.AsyncClient()
+    await scrape_prometheus_once(db, http, "http://guardrails:9464/metrics")
+    assert db.metric_names() == []
+    await http.aclose()
+    db.close()
