@@ -75,7 +75,13 @@ export default function ChallengesPage() {
       </div>
       {challenges.map((c: any, i) => (
         <div key={i} style={{ display: "flex", gap: 8, marginBottom: 4, fontSize: 13 }}>
-          <input type="checkbox" checked={selected.has(i)} onChange={() => toggle(i)} />
+          <input
+            type="checkbox"
+            checked={selected.has(i)}
+            onChange={() => toggle(i)}
+            disabled={!c.id}
+            title={c.id ? undefined : "This challenge has no id and can only run via 'Run all'"}
+          />
           <span style={{ color: "#5f6368", minWidth: 60 }}>{c.id ?? `#${i}`}</span>
           <span>{c.input ?? c.prompt ?? JSON.stringify(c)}</span>
         </div>
@@ -86,7 +92,7 @@ export default function ChallengesPage() {
             {r.challenge_id ?? `challenge ${i}`}{" "}
             <StatusPill status={r.status_code === 200 ? (wasBlocked(r) ? "blocked" : "allowed") : "error"} />
           </h4>
-          <p style={{ fontSize: 13 }}>{r.challenge?.input ?? ""}</p>
+          <p style={{ fontSize: 13 }}>{r.challenge?.input ?? (r.challenge as any)?.prompt ?? ""}</p>
           <JsonBlock data={r.response} />
         </div>
       ))}
