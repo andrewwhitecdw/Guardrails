@@ -23,7 +23,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 
 from .deps import Deps
 from .models import RequestRecord
-from .normalize import record_from_chat, record_from_stream, summarize
+from .normalize import _last_user_message, record_from_chat, record_from_stream, summarize
 
 router = APIRouter(prefix="/proxy")
 
@@ -46,11 +46,8 @@ def _deps(request: Request) -> Deps:
 @router.post("/v1/chat/completions")
 async def proxy_chat_completions(request: Request):
     body = await request.json()
-    body = _inject_log_options(body)
     deps = _deps(request)
-    if body.get("stream"):
-        return await _forward_streaming(deps, body)
-    return await _forward_chat(deps, body, source="proxy")
+    return await forward_chat(deps, body, source="proxy")
 
 
 @router.post("/v1/checks")
@@ -127,8 +124,6 @@ async def _forward_streaming(deps: Deps, body: dict, source: str = "proxy") -> S
 
 
 def _record_from_check(body: dict, data: dict) -> RequestRecord:
-    from .normalize import _last_user_message  # internal reuse
-
     rail_name = data.get("rail")
     status = data.get("status")
     record_status = status if status in ("allowed", "blocked") else "allowed"
