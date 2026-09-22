@@ -50,11 +50,11 @@ export default function MetricsPage() {
   return (
     <div>
       <h1>Metrics</h1>
-      <p style={{ fontSize: 13, color: "#5f6368" }}>
+      <p style={{ fontSize: 13, color: "#9d9d9d" }}>
         Time series scraped from the guardrails Prometheus exporter. Shows the
         exported admission-queue instruments (refreshes every 5 seconds).
       </p>
-      {error && <p style={{ color: "#b3261e" }}>{error}</p>}
+      {error && <p style={{ color: "#ff5c5c" }}>{error}</p>}
       {!error && samples.length === 0 && (
         <em>
           No samples yet. Start the dashboard with --prom-url pointing at the
@@ -72,7 +72,7 @@ export default function MetricsPage() {
                 <YAxis allowDecimals={false} />
                 <Tooltip />
                 <Legend />
-                <Line type="monotone" dataKey="value" dot={false} stroke="#1a73e8" />
+                <Line type="monotone" dataKey="value" dot={false} stroke="#76b900" />
               </LineChart>
             </ResponsiveContainer>
           </div>

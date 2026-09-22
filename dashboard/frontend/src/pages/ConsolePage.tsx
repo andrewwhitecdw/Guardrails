@@ -85,11 +85,11 @@ export default function ConsolePage() {
   return (
     <div>
       <h1>Console</h1>
-      <p style={{ fontSize: 13, color: "#5f6368" }}>
+      <p style={{ fontSize: 13, color: "#9d9d9d" }}>
         Send a test prompt through the recording pipeline. Every run is stored
         as a request record (source=console) and appears on the Requests page.
       </p>
-      {error && <p style={{ color: "#b3261e" }}>{error}</p>}
+      {error && <p style={{ color: "#ff5c5c" }}>{error}</p>}
       <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
         <label>
           Config:{" "}
@@ -126,7 +126,7 @@ export default function ConsolePage() {
       {result && (
         <div style={{ marginTop: 16 }}>
           <h3>Response</h3>
-          <pre style={{ background: "#f6f8fa", padding: 12, borderRadius: 6, whiteSpace: "pre-wrap" }}>
+          <pre style={{ background: "#141414", padding: 12, borderRadius: 6, whiteSpace: "pre-wrap" }}>
             {result.output}
           </pre>
           {result.log && (

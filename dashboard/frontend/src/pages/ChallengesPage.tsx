@@ -52,11 +52,11 @@ export default function ChallengesPage() {
   return (
     <div>
       <h1>Challenges</h1>
-      <p style={{ fontSize: 13, color: "#5f6368" }}>
+      <p style={{ fontSize: 13, color: "#9d9d9d" }}>
         Red-teaming challenge prompts served by the guardrails server
         (/v1/challenges). Runs are recorded with source=challenge.
       </p>
-      {error && <p style={{ color: "#b3261e" }}>{error}</p>}
+      {error && <p style={{ color: "#ff5c5c" }}>{error}</p>}
       <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
         <label>
           Config:{" "}
@@ -82,12 +82,12 @@ export default function ChallengesPage() {
             disabled={!c.id}
             title={c.id ? undefined : "This challenge has no id and can only run via 'Run all'"}
           />
-          <span style={{ color: "#5f6368", minWidth: 60 }}>{c.id ?? `#${i}`}</span>
+          <span style={{ color: "#9d9d9d", minWidth: 60 }}>{c.id ?? `#${i}`}</span>
           <span>{c.input ?? c.prompt ?? JSON.stringify(c)}</span>
         </div>
       ))}
       {results.map((r, i) => (
-        <div key={i} style={{ border: "1px solid #dadce0", borderRadius: 8, padding: 12, marginTop: 12 }}>
+        <div key={i} style={{ border: "1px solid #333333", borderRadius: 8, padding: 12, marginTop: 12 }}>
           <h4 style={{ margin: 0 }}>
             {r.challenge_id ?? `challenge ${i}`}{" "}
             <StatusPill status={r.status_code === 200 ? (wasBlocked(r) ? "blocked" : "allowed") : "error"} />

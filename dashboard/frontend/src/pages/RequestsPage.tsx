@@ -87,7 +87,7 @@ export default function RequestsPage() {
   return (
     <div>
       <h1>Requests</h1>
-      {error && <p style={{ color: "#b3261e" }}>{error}</p>}
+      {error && <p style={{ color: "#ff5c5c" }}>{error}</p>}
       <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
         <select value={rangeMs} onChange={(e) => { setOffset(0); setSelectedId(null); setRangeMs(Number(e.target.value)); }}>
           {RANGES.map(([label, ms]) => (
@@ -132,10 +132,10 @@ export default function RequestsPage() {
         />
         <button onClick={load}>Refresh</button>
       </div>
-      <p style={{ fontSize: 13, color: "#5f6368" }}>{data.total} records</p>
+      <p style={{ fontSize: 13, color: "#9d9d9d" }}>{data.total} records</p>
       <table style={{ borderCollapse: "collapse", width: "100%", fontSize: 13 }}>
         <thead>
-          <tr style={{ textAlign: "left", borderBottom: "2px solid #dadce0" }}>
+          <tr style={{ textAlign: "left", borderBottom: "2px solid #333333" }}>
             <th>Time</th><th>Source</th><th>Config</th><th>Status</th><th>Input</th><th>Output</th>
           </tr>
         </thead>
@@ -145,9 +145,9 @@ export default function RequestsPage() {
               key={r.id}
               onClick={() => setSelectedId(r.id)}
               style={{
-                borderBottom: "1px solid #eee",
+                borderBottom: "1px solid #2a2a2a",
                 cursor: "pointer",
-                background: r.id === selectedId ? "#e8f0fe" : undefined,
+                background: r.id === selectedId ? "rgba(118, 185, 0, 0.15)" : undefined,
               }}
             >
               <td style={{ whiteSpace: "nowrap" }}>{formatTs(r.ts)}</td>
@@ -164,7 +164,7 @@ export default function RequestsPage() {
           ))}
         </tbody>
       </table>
-      {data.items.length === 0 && !error && <p style={{ color: "#5f6368" }}>No records match the current filters.</p>}
+      {data.items.length === 0 && !error && <p style={{ color: "#9d9d9d" }}>No records match the current filters.</p>}
       <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
         <button disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}>
           Previous

@@ -65,11 +65,11 @@ export default function OverviewPage() {
           </select>
         </label>
       </div>
-      {error && <p style={{ color: "#b3261e" }}>{error}</p>}
+      {error && <p style={{ color: "#ff5c5c" }}>{error}</p>}
       {status && (
         <p>
           Guardrails server:{" "}
-          <strong style={{ color: healthy ? "#137333" : "#b3261e" }}>
+          <strong style={{ color: healthy ? "#76b900" : "#ff5c5c" }}>
             {healthy ? "healthy" : "unreachable"}
           </strong>{" "}
           ({status.guardrails.url}) — admin hook {status.admin_hook ? "installed" : "not installed"}
@@ -92,8 +92,8 @@ export default function OverviewPage() {
             <XAxis dataKey="time" />
             <YAxis allowDecimals={false} />
             <Tooltip />
-            <Area type="monotone" dataKey="requests" stroke="#1a73e8" fill="#1a73e8" fillOpacity={0.2} />
-            <Area type="monotone" dataKey="blocked" stroke="#b3261e" fill="#b3261e" fillOpacity={0.3} />
+            <Area type="monotone" dataKey="requests" stroke="#76b900" fill="#76b900" fillOpacity={0.2} />
+            <Area type="monotone" dataKey="blocked" stroke="#ff5c5c" fill="#ff5c5c" fillOpacity={0.3} />
           </AreaChart>
         </ResponsiveContainer>
       </div>
@@ -121,8 +121,8 @@ export default function OverviewPage() {
 
 function StatCard({ label, value }: { label: string; value?: number | string | null }) {
   return (
-    <div style={{ border: "1px solid #dadce0", borderRadius: 8, padding: "12px 20px", minWidth: 110 }}>
-      <div style={{ fontSize: 12, color: "#5f6368" }}>{label}</div>
+    <div style={{ border: "1px solid #333333", borderRadius: 8, padding: "12px 20px", minWidth: 110 }}>
+      <div style={{ fontSize: 12, color: "#9d9d9d" }}>{label}</div>
       <div style={{ fontSize: 24, fontWeight: 600 }}>{value ?? "n/a"}</div>
     </div>
   );

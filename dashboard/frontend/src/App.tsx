@@ -18,20 +18,73 @@ const NAV: [string, string][] = [
   ["/admin", "Admin"],
 ];
 
+const NV_GREEN = "#76b900";
+
+function NvidiaMark() {
+  return (
+    <svg viewBox="0 0 100 100" width={30} height={30} aria-hidden="true">
+      <g fill="none" stroke={NV_GREEN} strokeWidth={8} strokeLinecap="round">
+        <path d="M18 50 A32 32 0 0 1 82 50" />
+        <path d="M31 50 A19 19 0 0 1 69 50" />
+        <path d="M44 50 A6 6 0 0 1 56 50" />
+        <path d="M18 63 A32 32 0 0 0 82 63" opacity={0.55} />
+        <path d="M31 63 A19 19 0 0 0 69 63" opacity={0.55} />
+      </g>
+    </svg>
+  );
+}
+
 export default function App() {
   return (
     <HashRouter>
-      <div style={{ display: "flex", minHeight: "100vh", fontFamily: "system-ui, sans-serif", color: "#202124" }}>
-        <nav style={{ width: 190, borderRight: "1px solid #dadce0", padding: "16px 12px", flexShrink: 0 }}>
-          <h2 style={{ fontSize: 16, margin: "0 0 16px" }}>Guardrails</h2>
+      <div
+        style={{
+          display: "flex",
+          minHeight: "100vh",
+          fontFamily: "'Segoe UI', system-ui, sans-serif",
+          color: "#e8e8e8",
+          background: "#0f0f0f",
+        }}
+      >
+        <nav
+          style={{
+            width: 210,
+            background: "#000000",
+            borderRight: "1px solid #2a2a2a",
+            padding: "16px 14px",
+            flexShrink: 0,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+            <NvidiaMark />
+            <span style={{ fontSize: 20, fontWeight: 700, letterSpacing: 2, color: "#ffffff" }}>
+              NVIDIA
+            </span>
+          </div>
+          <div
+            style={{
+              fontSize: 11,
+              color: NV_GREEN,
+              textTransform: "uppercase",
+              letterSpacing: 1.5,
+              margin: "0 0 20px 40px",
+            }}
+          >
+            Guardrails Dashboard
+          </div>
           {NAV.map(([to, label]) => (
-            <div key={to} style={{ marginBottom: 6 }}>
+            <div key={to} style={{ marginBottom: 4 }}>
               <NavLink
                 to={to}
                 style={({ isActive }) => ({
+                  display: "block",
                   textDecoration: "none",
-                  color: isActive ? "#1a73e8" : "#5f6368",
+                  color: isActive ? "#000000" : "#9d9d9d",
+                  background: isActive ? NV_GREEN : "transparent",
                   fontWeight: isActive ? 600 : 400,
+                  borderRadius: 4,
+                  padding: "6px 10px",
+                  fontSize: 14,
                 })}
               >
                 {label}

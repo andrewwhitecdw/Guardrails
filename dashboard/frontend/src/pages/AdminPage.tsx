@@ -59,14 +59,14 @@ export default function AdminPage() {
   return (
     <div>
       <h1>Admin</h1>
-      {error && <p style={{ color: "#b3261e", whiteSpace: "pre-wrap" }}>{error}</p>}
-      {message && <p style={{ color: "#137333" }}>{message}</p>}
+      {error && <p style={{ color: "#ff5c5c", whiteSpace: "pre-wrap" }}>{error}</p>}
+      {message && <p style={{ color: "#76b900" }}>{message}</p>}
       <h3>Server</h3>
       {status && (
         <ul>
           <li>
             Health:{" "}
-            <strong style={{ color: status.guardrails.healthy ? "#137333" : "#b3261e" }}>
+            <strong style={{ color: status.guardrails.healthy ? "#76b900" : "#ff5c5c" }}>
               {status.guardrails.healthy ? "healthy" : "unreachable"}
             </strong>{" "}
             ({status.guardrails.url})
@@ -85,7 +85,7 @@ export default function AdminPage() {
       <JsonBlock data={status?.guardrails.models ?? null} />
       <h3>Reload config</h3>
       {status && !status.admin_hook && (
-        <pre style={{ background: "#fef7e0", border: "1px solid #f9ab00", borderRadius: 6, padding: 12, fontSize: 12, whiteSpace: "pre-wrap" }}>
+        <pre style={{ background: "#26200f", border: "1px solid #f79009", color: "#f79009", borderRadius: 6, padding: 12, fontSize: 12, whiteSpace: "pre-wrap" }}>
           {HOOK_INSTRUCTIONS}
         </pre>
       )}

@@ -2,7 +2,7 @@ import type { RailInfo } from "./types";
 
 export function StatusPill({ status }: { status: string }) {
   const background =
-    status === "blocked" ? "#b3261e" : status === "error" ? "#e8710a" : "#137333";
+    status === "blocked" ? "#ff5c5c" : status === "error" ? "#f79009" : "#76b900";
   return (
     <span
       style={{
@@ -21,7 +21,7 @@ export function StatusPill({ status }: { status: string }) {
 
 export function SourceTag({ source }: { source: string }) {
   return (
-    <span style={{ color: "#5f6368", fontSize: 12, border: "1px solid #dadce0", borderRadius: 4, padding: "1px 6px" }}>
+    <span style={{ color: "#9d9d9d", fontSize: 12, border: "1px solid #333333", borderRadius: 4, padding: "1px 6px" }}>
       {source}
     </span>
   );
@@ -32,8 +32,8 @@ export function JsonBlock({ data }: { data: unknown }) {
   return (
     <pre
       style={{
-        background: "#f6f8fa",
-        border: "1px solid #d0d7de",
+        background: "#141414",
+        border: "1px solid #333333",
         borderRadius: 6,
         padding: 12,
         overflow: "auto",
@@ -61,12 +61,12 @@ export function RailBars({ rails }: { rails: RailInfo[] }) {
           <div
             style={{
               height: 12,
-              background: rail.stop ? "#b3261e" : "#1a73e8",
+              background: rail.stop ? "#ff5c5c" : "#76b900",
               borderRadius: 3,
               width: `${Math.max(2, ((rail.duration ?? 0) / max) * 100)}%`,
             }}
           />
-          <span style={{ fontSize: 12, color: "#5f6368" }}>
+          <span style={{ fontSize: 12, color: "#9d9d9d" }}>
             {rail.duration != null ? `${Math.round(rail.duration * 1000)} ms` : "n/a"}
           </span>
         </div>

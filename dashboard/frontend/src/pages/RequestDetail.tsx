@@ -3,28 +3,28 @@ import type { RequestRecord } from "../types";
 
 export default function RequestDetail({ record }: { record: RequestRecord }) {
   return (
-    <div style={{ border: "1px solid #dadce0", borderRadius: 8, padding: 16, marginTop: 16 }}>
+    <div style={{ border: "1px solid #333333", borderRadius: 8, padding: 16, marginTop: 16 }}>
       <h3 style={{ marginTop: 0 }}>
         Request detail <StatusPill status={record.status} /> <SourceTag source={record.source} />
       </h3>
-      <p style={{ fontSize: 13, color: "#5f6368" }}>
+      <p style={{ fontSize: 13, color: "#9d9d9d" }}>
         {formatTs(record.ts)} — config: {record.config_id ?? "n/a"} — thread: {record.thread_id ?? "n/a"}
         {record.interaction_id ? ` — interaction: ${record.interaction_id}` : ""}
       </p>
-      {record.error && <p style={{ color: "#b3261e" }}>Error: {record.error}</p>}
+      {record.error && <p style={{ color: "#ff5c5c" }}>Error: {record.error}</p>}
       <h4>Activated rails</h4>
       <RailBars rails={record.rails} />
       <h4>LLM calls</h4>
       {record.llm_calls.length ? (
         <table style={{ borderCollapse: "collapse", width: "100%", fontSize: 13 }}>
           <thead>
-            <tr style={{ textAlign: "left", borderBottom: "1px solid #dadce0" }}>
+            <tr style={{ textAlign: "left", borderBottom: "1px solid #333333" }}>
               <th>Task</th><th>Model</th><th>Prompt tok</th><th>Completion tok</th><th>Total</th><th>Duration</th><th>Cache</th>
             </tr>
           </thead>
           <tbody>
             {record.llm_calls.map((c, i) => (
-              <tr key={i} style={{ borderBottom: "1px solid #eee" }}>
+              <tr key={i} style={{ borderBottom: "1px solid #2a2a2a" }}>
                 <td>{c.task ?? ""}</td>
                 <td>{c.model ?? "unknown"}</td>
                 <td>{c.prompt_tokens ?? ""}</td>
