@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Query, Request
 
 from ..telemetry import read_usage_events
 
@@ -21,7 +21,7 @@ router = APIRouter(prefix="/api/telemetry")
 
 
 @router.get("/events")
-async def get_events(request: Request, limit: int = 200):
+async def get_events(request: Request, limit: int = Query(default=200, ge=1, le=5000)):
     deps = request.app.state.deps
     items = read_usage_events(deps.settings.usage_stats_path, limit=limit)
     return {"items": items}

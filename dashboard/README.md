@@ -62,6 +62,10 @@ def init(app):
     _load_admin_hook(app)
 ```
 
+The hook's endpoints are unauthenticated, like the dashboard itself; only
+install it when the guardrails server is not exposed to untrusted networks — a
+config cache flush is an easy denial-of-service lever.
+
 ## Development
 
 ```bash

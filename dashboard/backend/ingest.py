@@ -36,7 +36,11 @@ class TraceIngester:
 
     async def run_forever(self, interval: float = 5.0):
         while True:
-            await self.scan_once()
+            try:
+                await self.scan_once()
+            except Exception:
+                # A bad scan must not kill the collector; retry next interval.
+                pass
             await asyncio.sleep(interval)
 
     def _files(self) -> list[str]:
@@ -144,5 +148,9 @@ async def scrape_prometheus_once(db: Database, http: httpx.AsyncClient, prom_url
 
 async def prometheus_loop(db: Database, http: httpx.AsyncClient, prom_url: str, interval: float):
     while True:
-        await scrape_prometheus_once(db, http, prom_url)
+        try:
+            await scrape_prometheus_once(db, http, prom_url)
+        except Exception:
+            # A failed scrape must not kill the collector; retry next interval.
+            pass
         await asyncio.sleep(interval)
