@@ -45,3 +45,11 @@ def test_malformed_lines_skipped(tmp_path):
     events = read_usage_events(str(path))
     assert len(events) == 1
     assert events[0]["event"] == "heartbeat"
+
+
+def test_non_dict_lines_skipped(tmp_path):
+    path = tmp_path / "usage_stats.json"
+    path.write_text("42\n" + json.dumps(EVENT) + "\n")
+    events = read_usage_events(str(path))
+    assert len(events) == 1
+    assert events[0]["event"] == "heartbeat"

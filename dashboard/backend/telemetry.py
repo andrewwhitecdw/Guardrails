@@ -15,7 +15,9 @@ def read_usage_events(path: str, limit: int = 200) -> list[dict[str, Any]]:
             if not line:
                 continue
             try:
-                events.append(json.loads(line))
+                parsed = json.loads(line)
             except json.JSONDecodeError:
                 continue
+            if isinstance(parsed, dict):
+                events.append(parsed)
     return events[-limit:]
