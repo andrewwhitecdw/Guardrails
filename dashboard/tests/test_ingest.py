@@ -14,6 +14,8 @@
 # limitations under the License.
 
 import json
+import os
+import time
 
 from backend.db import Database, RecordWriter
 from backend.ingest import TraceIngester
@@ -57,7 +59,7 @@ async def test_ingests_new_trace_lines_and_tracks_offset(tmp_path):
     db, writer, ingester = await make_ingester(tmp_path, [str(tmp_path / "traces" / "*.jsonl")])
 
     await ingester.scan_once()
-    await writer._queue.join()
+    await writer.drain()
 
     items, total = db.list_records(source="trace_file")
     assert total == 1
@@ -67,7 +69,7 @@ async def test_ingests_new_trace_lines_and_tracks_offset(tmp_path):
 
     # second scan with no new data inserts nothing
     await ingester.scan_once()
-    await writer._queue.join()
+    await writer.drain()
     _, total = db.list_records(source="trace_file")
     assert total == 1
 
@@ -77,7 +79,7 @@ async def test_ingests_new_trace_lines_and_tracks_offset(tmp_path):
         other = dict(TRACE_LINE, trace_id="t-2")
         f.write(json.dumps(other) + "\n")
     await ingester.scan_once()
-    await writer._queue.join()
+    await writer.drain()
     _, total = db.list_records(source="trace_file")
     assert total == 2
 
@@ -91,7 +93,7 @@ async def test_malformed_lines_are_counted_and_skipped(tmp_path):
     db, writer, ingester = await make_ingester(tmp_path, [str(tmp_path / "*.jsonl")])
 
     await ingester.scan_once()
-    await writer._queue.join()
+    await writer.drain()
 
     assert db.get_state(f"malformed:{trace}") == "1"
     _, total = db.list_records(source="trace_file")
@@ -105,12 +107,102 @@ async def test_truncated_file_resets_offset(tmp_path):
     trace.write_text(json.dumps(TRACE_LINE) + "\n")
     db, writer, ingester = await make_ingester(tmp_path, [str(tmp_path / "*.jsonl")])
     await ingester.scan_once()
-    await writer._queue.join()
+    await writer.drain()
 
     # simulate rotation: file shrinks back to zero and gets new content
     trace.write_text(json.dumps(dict(TRACE_LINE, trace_id="t-9")) + "\n")
     await ingester.scan_once()
-    await writer._queue.join()
+    await writer.drain()
+
+    _, total = db.list_records(source="trace_file")
+    assert total == 2
+    await writer.stop()
+    db.close()
+
+
+async def test_non_dict_json_lines_are_counted_malformed(tmp_path):
+    trace = tmp_path / "trace.jsonl"
+    trace.write_text("42\n" + '"hi"\n' + "[1]\n" + json.dumps(TRACE_LINE) + "\n")
+    db, writer, ingester = await make_ingester(tmp_path, [str(tmp_path / "*.jsonl")])
+
+    await ingester.scan_once()
+    await writer.drain()
+
+    assert db.get_state(f"malformed:{trace}") == "3"
+    _, total = db.list_records(source="trace_file")
+    assert total == 1
+    await writer.stop()
+    db.close()
+
+
+async def test_malformed_record_shape_is_skipped_and_counted(tmp_path):
+    trace = tmp_path / "trace.jsonl"
+    trace.write_text(json.dumps({"spans": [42]}) + "\n" + json.dumps(TRACE_LINE) + "\n")
+    db, writer, ingester = await make_ingester(tmp_path, [str(tmp_path / "*.jsonl")])
+
+    await ingester.scan_once()
+    await writer.drain()
+
+    assert db.get_state(f"malformed:{trace}") == "1"
+    _, total = db.list_records(source="trace_file")
+    assert total == 1
+    await writer.stop()
+    db.close()
+
+
+async def test_partial_last_line_is_held_back_until_complete(tmp_path):
+    trace = tmp_path / "trace.jsonl"
+    trace.write_text(json.dumps(TRACE_LINE) + "\n")
+    db, writer, ingester = await make_ingester(tmp_path, [str(tmp_path / "*.jsonl")])
+
+    await ingester.scan_once()
+    await writer.drain()
+    _, total = db.list_records(source="trace_file")
+    assert total == 1
+
+    # a concurrent writer flushed a line without its trailing newline
+    line2 = json.dumps(dict(TRACE_LINE, trace_id="t-2"))
+    with trace.open("a") as f:
+        f.write(line2[:-1])
+    await ingester.scan_once()
+    await writer.drain()
+
+    # the partial fragment is held back, not counted malformed and not lost
+    assert db.get_state(f"malformed:{trace}") is None
+    _, total = db.list_records(source="trace_file")
+    assert total == 1
+
+    # the remainder of the line lands; it is ingested whole on the next scan
+    with trace.open("a") as f:
+        f.write(line2[-1] + "\n")
+    await ingester.scan_once()
+    await writer.drain()
+
+    assert db.get_state(f"malformed:{trace}") is None
+    _, total = db.list_records(source="trace_file")
+    assert total == 2
+    await writer.stop()
+    db.close()
+
+
+async def test_equal_size_rewrite_with_fresh_mtime_is_reingested(tmp_path):
+    trace = tmp_path / "trace.jsonl"
+    line1 = json.dumps(TRACE_LINE)
+    trace.write_text(line1 + "\n")
+    db, writer, ingester = await make_ingester(tmp_path, [str(tmp_path / "*.jsonl")])
+    await ingester.scan_once()
+    await writer.drain()
+
+    # rewrite in place (no truncation) with an equal-length trace_id
+    line2 = json.dumps(dict(TRACE_LINE, trace_id="t-X"))
+    assert len(line2) == len(line1)
+    with trace.open("r+") as f:
+        f.seek(0)
+        f.write(line2 + "\n")
+    os.utime(trace, ns=(time.time_ns(), time.time_ns()))
+
+    await ingester.scan_once()
+    await writer.drain()
 
     _, total = db.list_records(source="trace_file")
     assert total == 2

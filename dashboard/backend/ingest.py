@@ -67,23 +67,36 @@ class TraceIngester:
         # file did not grow past the remembered offset.
         if prev_mtime is not None and st.st_mtime_ns != prev_mtime and st.st_size <= offset:
             offset = 0
-        with open(path, "rb") as f:
-            f.seek(offset)
-            data = f.read()
-        self._db.set_state(state_key, f"{st.st_mtime_ns}:{offset + len(data)}")
-        if not data:
+        try:
+            with open(path, "rb") as f:
+                f.seek(offset)
+                data = f.read()
+            # Hold back a trailing partial line: the adapter may be mid-append.
+            complete, _, pending = data.rpartition(b"\n")
+            self._db.set_state(state_key, f"{st.st_mtime_ns}:{offset + len(data) - len(pending)}")
+            if not complete:
+                return
+            mtime_ms = st.st_mtime_ns // 1_000_000
+            for raw_line in complete.splitlines():
+                line = raw_line.strip()
+                if not line:
+                    continue
+                try:
+                    entry = json.loads(line)
+                except json.JSONDecodeError:
+                    self._db.increment_state(malformed_key)
+                    continue
+                if not isinstance(entry, dict):
+                    self._db.increment_state(malformed_key)
+                    continue
+                try:
+                    record = record_from_trace_line(entry, ts_ms=mtime_ms)
+                except (AttributeError, TypeError):
+                    self._db.increment_state(malformed_key)
+                    continue
+                await self._writer.enqueue(record)
+        except OSError:
             return
-        mtime_ms = int(os.path.getmtime(path) * 1000)
-        for raw_line in data.splitlines():
-            line = raw_line.strip()
-            if not line:
-                continue
-            try:
-                entry = json.loads(line)
-            except json.JSONDecodeError:
-                self._db.increment_state(malformed_key)
-                continue
-            await self._writer.enqueue(record_from_trace_line(entry, ts_ms=mtime_ms))
 
 
 def now_ms() -> int:
