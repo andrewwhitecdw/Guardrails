@@ -69,6 +69,7 @@ async def proxy_checks(request: Request):
             upstream.content, status_code=upstream.status_code, media_type=upstream.headers.get("content-type")
         )
     await deps.writer.enqueue(_record_from_check(body, data))
+    await deps.writer.drain()
     return JSONResponse(data)
 
 
@@ -95,6 +96,7 @@ async def _forward_chat(deps: Deps, body: dict, source: str) -> Response:
         return Response(upstream.content, status_code=upstream.status_code, media_type=media_type)
     if upstream.status_code == 200:
         await deps.writer.enqueue(record_from_chat(body, data, source=source))
+        await deps.writer.drain()
     return JSONResponse(data, status_code=upstream.status_code)
 
 
