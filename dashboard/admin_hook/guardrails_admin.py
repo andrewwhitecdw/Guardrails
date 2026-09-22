@@ -36,6 +36,12 @@ The hook is only loaded by the server when the config root is not in
 single-config mode (see nemoguardrails/server/api.py).
 """
 
+from pydantic import BaseModel
+
+
+class _ReloadRequest(BaseModel):
+    config_id: str | None = None
+
 
 def init(app):
     from nemoguardrails.server import api as server_api
@@ -45,14 +51,18 @@ def init(app):
         return {"admin": True, "reload": True}
 
     @app.post("/v1/admin/reload")
-    async def admin_reload(config_id: str | None = None):
+    async def admin_reload(request: _ReloadRequest | None = None):
         """Drop cached LLMRails instances so configs rebuild on next request.
 
         Mirrors the built-in auto-reload behavior, but also matches merged
         config keys ("id1-id2") and model-suffixed keys ("id:model").
         """
+        config_id = request.config_id if request else None
         reloaded = []
         for key in list(server_api.llm_rails_instances.keys()):
+            # A config id containing "-" is split into fragments, so reloading
+            # "bot" also matches a cached key "my-bot" — inherent to the
+            # server's own cache-key format; acceptable for a local admin tool.
             ids = key.split(":")[0].split("-")
             if config_id is None or config_id in ids:
                 instance = server_api.llm_rails_instances.pop(key)
