@@ -100,26 +100,39 @@ async def _forward_chat(deps: Deps, body: dict, source: str) -> Response:
     return JSONResponse(data, status_code=upstream.status_code)
 
 
-async def _forward_streaming(deps: Deps, body: dict, source: str = "proxy") -> StreamingResponse:
+async def _forward_streaming(deps: Deps, body: dict, source: str = "proxy") -> Response:
     url = f"{deps.settings.guardrails_url}/v1/chat/completions"
     started = time.monotonic()
 
+    # Enter the httpx stream context before building the response so a
+    # non-200 upstream status can be surfaced as our own status code.
+    cm = deps.http.stream("POST", url, json=body)
+    try:
+        upstream = await cm.__aenter__()
+    except httpx.HTTPError as exc:
+        raise HTTPException(status_code=502, detail="guardrails server unreachable") from exc
+    if upstream.status_code != 200:
+        content = await upstream.aread()
+        media_type = upstream.headers.get("content-type", "application/json")
+        await cm.__aexit__(None, None, None)
+        return Response(content, status_code=upstream.status_code, media_type=media_type)
+
     async def event_gen():
         buffer: list[bytes] = []
+        failed = False
         try:
-            async with deps.http.stream("POST", url, json=body) as upstream:
-                if upstream.status_code != 200:
-                    yield await upstream.aread()
-                    return
+            try:
                 async for chunk in upstream.aiter_raw():
                     buffer.append(chunk)
                     yield chunk
-        except httpx.HTTPError as exc:
-            yield json.dumps({"error": {"message": str(exc)}}).encode()
-            return
+            except httpx.HTTPError as exc:
+                failed = True
+                yield f"data: {json.dumps({'error': {'message': str(exc)}})}\n\n".encode()
+        finally:
+            await cm.__aexit__(None, None, None)
         ended = time.monotonic()
         text = b"".join(buffer).decode(errors="replace")
-        if buffer:
+        if buffer and not failed:
             await deps.writer.enqueue(record_from_stream(body, text, started, ended, source=source))
 
     return StreamingResponse(event_gen(), media_type="text/event-stream")
@@ -128,7 +141,8 @@ async def _forward_streaming(deps: Deps, body: dict, source: str = "proxy") -> S
 def _record_from_check(body: dict, data: dict) -> RequestRecord:
     rail_name = data.get("rail")
     status = data.get("status")
-    record_status = status if status in ("allowed", "blocked") else "allowed"
+    # /v1/checks returns passed|modified|blocked; only "blocked" is a stop.
+    record_status = "blocked" if status == "blocked" else "allowed"
     return RequestRecord(
         id=uuid.uuid4().hex,
         ts=int(time.time() * 1000),

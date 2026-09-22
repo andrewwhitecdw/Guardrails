@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
+
 import httpx
 import respx
 from backend.main import create_app
@@ -159,16 +161,27 @@ def test_console_run_records_with_console_source(tmp_path):
 @respx.mock
 def test_checks_run_records_with_check_source(tmp_path):
     with build_client(tmp_path) as client:
-        respx.post(f"{BASE}/v1/checks").mock(
-            return_value=httpx.Response(200, json={"status": "allowed", "content": "ok", "rail": None})
-        )
+        captured = {}
+
+        def handler(request):
+            captured["body"] = json.loads(request.content)
+            return httpx.Response(200, json={"status": "passed", "content": "ok", "rail": None})
+
+        respx.post(f"{BASE}/v1/checks").mock(side_effect=handler)
         resp = client.post(
             "/api/commands/checks/run",
-            json={"config_id": "demo", "messages": [{"role": "user", "content": "hi"}]},
+            json={
+                "config_id": "demo",
+                "rail_types": ["input"],
+                "messages": [{"role": "user", "content": "hi"}],
+            },
         )
         assert resp.status_code == 200
+        # the real /v1/checks endpoint expects config_id/rail_types nested under "guardrails"
+        assert captured["body"]["guardrails"] == {"config_id": "demo", "rail_types": ["input"]}
         items, total = client.app.state.deps.db.list_records(source="check")
         assert total == 1
+        assert items[0].status == "allowed"
 
 
 @respx.mock

@@ -203,6 +203,7 @@ def test_proxy_streaming_upstream_error(tmp_path):
             "/proxy/v1/chat/completions",
             json={"messages": [{"role": "user", "content": "hi"}], "stream": True},
         ) as resp:
+            assert resp.status_code == 500
             body = b"".join(resp.iter_raw())
         assert b"upstream boom" in body
         deps = client.app.state.deps

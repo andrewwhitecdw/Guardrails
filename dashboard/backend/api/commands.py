@@ -53,9 +53,9 @@ async def checks_run(request: Request):
     body = await request.json()
     payload: dict = {"messages": body.get("messages") or []}
     if body.get("config_id"):
-        payload["config_id"] = body["config_id"]
-    if body.get("rail_types"):
-        payload["rail_types"] = body["rail_types"]
+        payload["guardrails"] = {"config_id": body["config_id"]}
+        if body.get("rail_types"):
+            payload["guardrails"]["rail_types"] = body["rail_types"]
 
     try:
         upstream = await deps.http.post(f"{deps.settings.guardrails_url}/v1/checks", json=payload)
