@@ -148,7 +148,7 @@ def _record_from_check(body: dict, data: dict) -> RequestRecord:
         ts=int(time.time() * 1000),
         source="check",
         status=record_status,
-        config_id=body.get("config_id"),
+        config_id=body.get("config_id") or (body.get("guardrails") or {}).get("config_id"),
         input_summary=summarize(_last_user_message(body)),
         output_summary=summarize(str(data.get("content") or "")),
         rails=[{"name": rail_name, "stop": record_status == "blocked"}] if rail_name else [],

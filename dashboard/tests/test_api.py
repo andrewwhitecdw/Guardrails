@@ -182,6 +182,7 @@ def test_checks_run_records_with_check_source(tmp_path):
         items, total = client.app.state.deps.db.list_records(source="check")
         assert total == 1
         assert items[0].status == "allowed"
+        assert items[0].config_id == "demo"
 
 
 @respx.mock
