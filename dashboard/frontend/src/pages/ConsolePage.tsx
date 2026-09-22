@@ -139,7 +139,11 @@ export default function ConsolePage() {
                   <ul>
                     {Object.entries(result.log.stats).map(([k, v]) => (
                       <li key={k}>
-                        {k}: {typeof v === "number" && v < 10000 ? `${Math.round(v * 1000)} ms` : String(v)}
+                        {k}: {v == null
+                          ? "n/a"
+                          : k.endsWith("_duration") && typeof v === "number"
+                            ? `${Math.round(v * 1000)} ms`
+                            : String(v)}
                       </li>
                     ))}
                   </ul>

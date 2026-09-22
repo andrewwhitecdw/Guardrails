@@ -45,7 +45,11 @@ export default function RequestDetail({ record }: { record: RequestRecord }) {
           <ul>
             {Object.entries(record.phase_durations).map(([k, v]) => (
               <li key={k}>
-                {k}: {typeof v === "number" && v < 1000 ? `${Math.round(v * 1000)} ms` : String(v)}
+                {k}: {v == null
+                  ? "n/a"
+                  : k.endsWith("_duration") && typeof v === "number"
+                    ? `${Math.round(v * 1000)} ms`
+                    : String(v)}
               </li>
             ))}
           </ul>
