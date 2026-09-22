@@ -130,3 +130,85 @@ def test_telemetry_endpoint(tmp_path):
     with build_client(tmp_path, usage_stats_path=str(usage)) as client:
         data = client.get("/api/telemetry/events").json()
         assert data["items"] == [{"event": "startup", "timestamp": 1.0}]
+
+
+CHAT_OK = {
+    "choices": [{"message": {"role": "assistant", "content": "fine"}, "finish_reason": "stop"}],
+    "guardrails": {
+        "config_id": "demo",
+        "log": {"activated_rails": [], "stats": {"total_duration": 0.2}, "llm_calls": []},
+    },
+}
+
+
+@respx.mock
+def test_console_run_records_with_console_source(tmp_path):
+    with build_client(tmp_path) as client:
+        respx.post(f"{BASE}/v1/chat/completions").mock(return_value=httpx.Response(200, json=CHAT_OK))
+        resp = client.post(
+            "/api/commands/console/run",
+            json={"config_id": "demo", "messages": [{"role": "user", "content": "hello"}]},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["choices"][0]["message"]["content"] == "fine"
+        items, total = client.app.state.deps.db.list_records(source="console")
+        assert total == 1
+        assert items[0].config_id == "demo"
+
+
+@respx.mock
+def test_checks_run_records_with_check_source(tmp_path):
+    with build_client(tmp_path) as client:
+        respx.post(f"{BASE}/v1/checks").mock(
+            return_value=httpx.Response(200, json={"status": "allowed", "content": "ok", "rail": None})
+        )
+        resp = client.post(
+            "/api/commands/checks/run",
+            json={"config_id": "demo", "messages": [{"role": "user", "content": "hi"}]},
+        )
+        assert resp.status_code == 200
+        items, total = client.app.state.deps.db.list_records(source="check")
+        assert total == 1
+
+
+@respx.mock
+def test_challenges_list_and_run(tmp_path):
+    with build_client(tmp_path) as client:
+        respx.get(f"{BASE}/v1/challenges").mock(
+            return_value=httpx.Response(200, json=[{"id": "c1", "input": "hack"}, {"id": "c2", "input": "spam"}])
+        )
+        assert len(client.get("/api/commands/challenges").json()["items"]) == 2
+
+        respx.post(f"{BASE}/v1/chat/completions").mock(return_value=httpx.Response(200, json=CHAT_OK))
+        resp = client.post(
+            "/api/commands/challenges/run",
+            json={"config_id": "demo", "challenge_ids": ["c1"]},
+        )
+        assert resp.status_code == 200
+        results = resp.json()["results"]
+        assert len(results) == 1
+        assert results[0]["challenge_id"] == "c1"
+        items, total = client.app.state.deps.db.list_records(source="challenge")
+        assert total == 1
+
+
+@respx.mock
+def test_admin_reload_without_hook_returns_409_with_instructions(tmp_path):
+    with build_client(tmp_path) as client:
+        respx.get(f"{BASE}/v1/admin/capabilities").mock(return_value=httpx.Response(404))
+        resp = client.post("/api/commands/admin/reload", json={"config_id": "demo"})
+        assert resp.status_code == 409
+        assert "admin_hook" in resp.json()["detail"]
+
+
+@respx.mock
+def test_admin_reload_with_hook_forwards(tmp_path):
+    with build_client(tmp_path) as client:
+        respx.get(f"{BASE}/v1/admin/capabilities").mock(return_value=httpx.Response(200, json={"admin": True}))
+        route = respx.post(f"{BASE}/v1/admin/reload").mock(
+            return_value=httpx.Response(200, json={"reloaded": ["demo"]})
+        )
+        resp = client.post("/api/commands/admin/reload", json={"config_id": "demo"})
+        assert resp.status_code == 200
+        assert resp.json() == {"reloaded": ["demo"]}
+        assert route.called

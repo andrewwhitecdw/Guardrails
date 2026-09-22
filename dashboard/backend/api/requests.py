@@ -28,7 +28,7 @@ async def list_requests(
     config_id: str | None = None,
     rail: str | None = None,
     search: str | None = None,
-    limit: int = Query(default=100, le=500),
+    limit: int = Query(default=100, ge=1, le=500),
     offset: int = 0,
 ):
     deps = request.app.state.deps
