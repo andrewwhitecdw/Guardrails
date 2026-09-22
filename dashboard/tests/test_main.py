@@ -18,6 +18,28 @@ from backend.settings import Settings
 from starlette.testclient import TestClient
 
 
+def test_module_entrypoint_starts_server(monkeypatch, tmp_path):
+    import runpy
+    import sys
+
+    import uvicorn
+
+    seen = {}
+
+    def fake_uvicorn_run(app, host=None, port=None):
+        seen["host"] = host
+        seen["port"] = port
+
+    monkeypatch.setattr(uvicorn, "run", fake_uvicorn_run)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["backend.main", "--port", "9999", "--db", str(tmp_path / "entrypoint.db")],
+    )
+    runpy.run_module("backend.main", run_name="__main__")
+    assert seen == {"host": "127.0.0.1", "port": 9999}
+
+
 def test_build_settings_cli_overrides():
     settings = build_settings(["--guardrails-url", "http://x:1", "--port", "9999", "--db", "/tmp/a.db"])
     assert settings.guardrails_url == "http://x:1"

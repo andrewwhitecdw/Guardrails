@@ -100,3 +100,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 def main():
     settings = build_settings()
     uvicorn.run(create_app(settings), host=settings.host, port=settings.port)
+
+
+if __name__ == "__main__":
+    main()
