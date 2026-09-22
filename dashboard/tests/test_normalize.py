@@ -1,3 +1,18 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import json
 
 from backend.normalize import record_from_chat, record_from_stream, record_from_trace_line
@@ -9,8 +24,15 @@ CHAT_RESPONSE = {
         "config_id": "demo",
         "log": {
             "activated_rails": [
-                {"type": "input", "name": "self check input", "decisions": [], "stop": True,
-                 "started_at": 1.0, "finished_at": 1.2, "duration": 0.2},
+                {
+                    "type": "input",
+                    "name": "self check input",
+                    "decisions": [],
+                    "stop": True,
+                    "started_at": 1.0,
+                    "finished_at": 1.2,
+                    "duration": 0.2,
+                },
             ],
             "stats": {
                 "input_rails_duration": 0.2,
@@ -22,9 +44,18 @@ CHAT_RESPONSE = {
                 "llm_calls_count": 1,
             },
             "llm_calls": [
-                {"task": "self check", "duration": 0.9, "prompt_tokens": 42, "completion_tokens": 7,
-                 "total_tokens": 49, "started_at": 1.1, "finished_at": 2.0,
-                 "llm_model_name": "gpt-4", "llm_provider_name": "openai", "from_cache": False},
+                {
+                    "task": "self check",
+                    "duration": 0.9,
+                    "prompt_tokens": 42,
+                    "completion_tokens": 7,
+                    "total_tokens": 49,
+                    "started_at": 1.1,
+                    "finished_at": 2.0,
+                    "llm_model_name": "gpt-4",
+                    "llm_provider_name": "openai",
+                    "from_cache": False,
+                },
             ],
         },
     },
@@ -91,18 +122,38 @@ TRACE_LINE = {
     "schema_version": "2.0",
     "trace_id": "abc-123",
     "spans": [
-        {"name": "interaction", "span_type": "InteractionSpan", "duration": 2.0,
-         "start_time": 0.0, "end_time": 2.0,
-         "attributes": {"span.kind": "server", "gen_ai.operation.name": "chat"}},
-        {"name": "self check input", "span_type": "RailSpan", "duration": 0.3,
-         "start_time": 0.0, "end_time": 0.3,
-         "attributes": {"rail.type": "input", "rail.name": "self check input", "rail.stop": True}},
-        {"name": "generate bot message", "span_type": "LLMSpan", "duration": 1.0,
-         "start_time": 0.5, "end_time": 1.5,
-         "attributes": {"gen_ai.provider.name": "openai", "gen_ai.request.model": "gpt-4",
-                        "gen_ai.response.model": "gpt-4", "gen_ai.usage.input_tokens": 10,
-                        "gen_ai.usage.output_tokens": 5, "gen_ai.usage.total_tokens": 15,
-                        "llm.cache.hit": False}},
+        {
+            "name": "interaction",
+            "span_type": "InteractionSpan",
+            "duration": 2.0,
+            "start_time": 0.0,
+            "end_time": 2.0,
+            "attributes": {"span.kind": "server", "gen_ai.operation.name": "chat"},
+        },
+        {
+            "name": "self check input",
+            "span_type": "RailSpan",
+            "duration": 0.3,
+            "start_time": 0.0,
+            "end_time": 0.3,
+            "attributes": {"rail.type": "input", "rail.name": "self check input", "rail.stop": True},
+        },
+        {
+            "name": "generate bot message",
+            "span_type": "LLMSpan",
+            "duration": 1.0,
+            "start_time": 0.5,
+            "end_time": 1.5,
+            "attributes": {
+                "gen_ai.provider.name": "openai",
+                "gen_ai.request.model": "gpt-4",
+                "gen_ai.response.model": "gpt-4",
+                "gen_ai.usage.input_tokens": 10,
+                "gen_ai.usage.output_tokens": 5,
+                "gen_ai.usage.total_tokens": 15,
+                "llm.cache.hit": False,
+            },
+        },
     ],
 }
 

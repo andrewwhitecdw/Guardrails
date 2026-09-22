@@ -1,3 +1,18 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import json
 import math
 from collections import Counter
@@ -7,8 +22,7 @@ from .db import Database
 
 def overview_stats(db: Database, start_ts: int, end_ts: int, bucket_count: int = 60) -> dict:
     rows = db.query(
-        "SELECT ts, status, phase_durations_json, llm_calls_json FROM request_records"
-        " WHERE ts >= ? AND ts <= ?",
+        "SELECT ts, status, phase_durations_json, llm_calls_json FROM request_records WHERE ts >= ? AND ts <= ?",
         (start_ts, end_ts),
     )
     durations: list[float] = []
@@ -31,9 +45,7 @@ def overview_stats(db: Database, start_ts: int, end_ts: int, bucket_count: int =
             input_tokens += call.get("prompt_tokens") or 0
             output_tokens += call.get("completion_tokens") or 0
         idx = (row["ts"] - start_ts) // bucket_span
-        bucket = buckets.setdefault(
-            idx, {"ts": start_ts + idx * bucket_span, "count": 0, "blocked": 0}
-        )
+        bucket = buckets.setdefault(idx, {"ts": start_ts + idx * bucket_span, "count": 0, "blocked": 0})
         bucket["count"] += 1
         if row["status"] == "blocked":
             bucket["blocked"] += 1
@@ -83,7 +95,4 @@ def rails_frequency(db: Database, start_ts: int, end_ts: int, limit: int = 10) -
         key=lambda kv: (kv[1], blocked_counts.get(kv[0], 0)),
         reverse=True,
     )
-    return [
-        {"name": name, "count": count, "blocked": blocked_counts.get(name, 0)}
-        for name, count in ranked[:limit]
-    ]
+    return [{"name": name, "count": count, "blocked": blocked_counts.get(name, 0)} for name, count in ranked[:limit]]
