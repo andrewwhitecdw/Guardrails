@@ -77,6 +77,7 @@ class Database:
         self._lock = threading.Lock()
         with self._lock:
             self._conn.execute("PRAGMA journal_mode=WAL")
+            self._conn.execute("PRAGMA busy_timeout=5000")
             self._conn.executescript(SCHEMA)
             self._conn.commit()
 

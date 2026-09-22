@@ -67,6 +67,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app = FastAPI(title="Guardrails Admin Dashboard", lifespan=lifespan)
     app.state.deps = deps
     app.include_router(proxy_router)
+
+    from .api import metrics as metrics_api
+    from .api import requests as requests_api
+    from .api import status as status_api
+    from .api import telemetry as telemetry_api
+
+    app.include_router(status_api.router)
+    app.include_router(requests_api.router)
+    app.include_router(metrics_api.router)
+    app.include_router(telemetry_api.router)
     return app
 
 
