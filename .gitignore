@@ -85,3 +85,6 @@ scratch.py
 
 # Local agent worktrees
 .worktrees/
+
+# Dashboard frontend build artifacts
+dashboard/frontend/dist/
