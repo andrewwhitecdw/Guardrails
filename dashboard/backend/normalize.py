@@ -192,7 +192,9 @@ def record_from_trace_line(entry: dict[str, Any], ts_ms: int) -> RequestRecord:
             )
         if error is None and span.get("error"):
             err = span["error"]
-            error = err.get("message") or str(err)
+            error = err.get("message") if isinstance(err, dict) else str(err)
+            if not error:
+                error = str(err)
 
     if error is not None:
         status = "error"
@@ -201,8 +203,11 @@ def record_from_trace_line(entry: dict[str, Any], ts_ms: int) -> RequestRecord:
     else:
         status = "allowed"
 
+    start_times = [s.get("start_time") for s in spans if s.get("start_time") is not None]
     end_times = [s.get("end_time") for s in spans if s.get("end_time") is not None]
-    phases = {"total_duration": max(end_times)} if end_times else {}
+    phases = {}
+    if start_times and end_times:
+        phases["total_duration"] = max(end_times) - min(start_times)
 
     return RequestRecord(
         id=str(uuid.uuid4()),

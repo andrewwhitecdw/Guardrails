@@ -127,3 +127,24 @@ def test_record_from_trace_line_error_span():
     rec = record_from_trace_line(line, ts_ms=0)
     assert rec.status == "error"
     assert rec.error == "bad rail"
+
+
+def test_record_from_trace_line_string_error():
+    import copy
+
+    line = copy.deepcopy(TRACE_LINE)
+    line["spans"][1]["error"] = "boom"
+    rec = record_from_trace_line(line, ts_ms=0)
+    assert rec.status == "error"
+    assert rec.error == "boom"
+
+
+def test_record_from_trace_line_absolute_times():
+    import copy
+
+    line = copy.deepcopy(TRACE_LINE)
+    for span in line["spans"]:
+        span["start_time"] = span["start_time"] + 1000.0
+        span["end_time"] = span["end_time"] + 1000.0
+    rec = record_from_trace_line(line, ts_ms=0)
+    assert rec.phase_durations["total_duration"] == 2.0
