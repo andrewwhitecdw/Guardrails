@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import json
+import time
 
 import httpx
 import respx
@@ -137,3 +138,73 @@ def test_proxy_checks_records_result(tmp_path):
         assert total == 1
         assert items[0].status == "blocked"
         assert items[0].rails[0]["name"] == "self check input"
+
+
+SSE_CHUNKS = [
+    b'data: {"choices": [{"index": 0, "delta": {"role": "assistant", "content": "Stay"}}]}\n\n',
+    b'data: {"choices": [{"index": 0, "delta": {"content": " safe."}}]}\n\n',
+    b"data: [DONE]\n\n",
+]
+
+
+async def _sse_body():
+    # respx requires an async iterator for streamed mock content
+    for chunk in SSE_CHUNKS:
+        yield chunk
+
+
+def _wait_for_records(deps, source, expected, timeout=5.0):
+    # The streaming path enqueues the record without draining; the writer task
+    # runs in the TestClient portal loop, so poll the DB until it lands.
+    deadline = time.monotonic() + timeout
+    while True:
+        items, total = deps.db.list_records(source=source)
+        if total >= expected or time.monotonic() >= deadline:
+            return items, total
+        time.sleep(0.01)
+
+
+@respx.mock
+def test_proxy_streams_sse_and_records(tmp_path):
+    with build_client(tmp_path) as client:
+        respx.post(f"{BASE}/v1/chat/completions").mock(
+            return_value=httpx.Response(
+                200,
+                headers={"content-type": "text/event-stream"},
+                content=_sse_body(),
+            )
+        )
+        with client.stream(
+            "POST",
+            "/proxy/v1/chat/completions",
+            json={"messages": [{"role": "user", "content": "hi"}], "stream": True},
+        ) as resp:
+            assert resp.status_code == 200
+            assert resp.headers["content-type"].startswith("text/event-stream")
+            body = b"".join(resp.iter_raw())
+        assert b"Stay" in body and b"[DONE]" in body
+
+        deps = client.app.state.deps
+        items, total = _wait_for_records(deps, "proxy", 1)
+        assert total == 1
+        assert items[0].output_summary == "Stay safe."
+        assert items[0].phase_durations["total_duration"] >= 0
+        assert items[0].status == "allowed"
+
+
+@respx.mock
+def test_proxy_streaming_upstream_error(tmp_path):
+    with build_client(tmp_path) as client:
+        respx.post(f"{BASE}/v1/chat/completions").mock(
+            return_value=httpx.Response(500, json={"error": {"message": "upstream boom"}})
+        )
+        with client.stream(
+            "POST",
+            "/proxy/v1/chat/completions",
+            json={"messages": [{"role": "user", "content": "hi"}], "stream": True},
+        ) as resp:
+            body = b"".join(resp.iter_raw())
+        assert b"upstream boom" in body
+        deps = client.app.state.deps
+        _, total = deps.db.list_records(source="proxy")
+        assert total == 0
