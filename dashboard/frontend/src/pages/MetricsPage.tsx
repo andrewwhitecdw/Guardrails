@@ -1,11 +1,30 @@
 import { useEffect, useMemo, useState } from "react";
-import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import {
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 import { api } from "../api";
+import { Card, EmptyState, Skeleton } from "../ui";
+import { colors } from "../theme";
 import type { MetricSample } from "../types";
+
+const tooltipStyle = {
+  backgroundColor: colors.panel,
+  border: `1px solid ${colors.panelBorder}`,
+  borderRadius: 8,
+  fontSize: 12,
+} as const;
 
 export default function MetricsPage() {
   const [samples, setSamples] = useState<MetricSample[]>([]);
+  const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -16,9 +35,13 @@ export default function MetricsPage() {
         if (alive) {
           setSamples(data);
           setError(null);
+          setLoaded(true);
         }
       } catch (e) {
-        if (alive) setError((e as Error).message);
+        if (alive) {
+          setError((e as Error).message);
+          setLoaded(true);
+        }
       }
     };
     load();
@@ -49,34 +72,35 @@ export default function MetricsPage() {
 
   return (
     <div>
-      <h1>Metrics</h1>
-      <p style={{ fontSize: 13, color: "#9d9d9d" }}>
+      <p style={{ fontSize: 13, color: colors.muted, marginTop: 0 }}>
         Time series scraped from the guardrails Prometheus exporter. Shows the
         exported admission-queue instruments (refreshes every 5 seconds).
       </p>
-      {error && <p style={{ color: "#ff5c5c" }}>{error}</p>}
-      {!error && samples.length === 0 && (
-        <em>
-          No samples yet. Start the dashboard with --prom-url pointing at the
-          guardrails metrics exporter and generate some traffic.
-        </em>
+      {error && <p style={{ color: colors.red }}>{error}</p>}
+      {!loaded && <Skeleton height={220} />}
+      {loaded && !error && samples.length === 0 && (
+        <Card>
+          <EmptyState
+            title="No samples yet"
+            hint="Start the dashboard with --prom-url pointing at the guardrails metrics exporter and generate some traffic."
+          />
+        </Card>
       )}
       {series.map((s) => (
-        <div key={s.name} style={{ marginBottom: 32 }}>
-          <h3 style={{ fontSize: 14 }}>{s.name}</h3>
+        <Card key={s.name} title={<span style={{ fontFamily: "monospace", fontSize: 13 }}>{s.name}</span>} style={{ marginBottom: 16 }}>
           <div style={{ width: "100%", height: 220 }}>
             <ResponsiveContainer>
               <LineChart data={s.points}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="time" />
-                <YAxis allowDecimals={false} />
-                <Tooltip />
+                <CartesianGrid stroke="#1f1f1f" strokeDasharray="3 3" />
+                <XAxis dataKey="time" stroke={colors.muted} tick={{ fontSize: 11 }} />
+                <YAxis allowDecimals={false} stroke={colors.muted} tick={{ fontSize: 11 }} />
+                <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: colors.muted }} />
                 <Legend />
-                <Line type="monotone" dataKey="value" dot={false} stroke="#76b900" />
+                <Line type="monotone" dataKey="value" dot={false} stroke={colors.green} />
               </LineChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </Card>
       ))}
     </div>
   );
