@@ -1,8 +1,19 @@
 import { useEffect, useState } from "react";
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
+import { usePageActions } from "../App";
 import { api } from "../api";
 import { formatMs } from "../components";
+import { Card, Skeleton } from "../ui";
+import { cardStyle, colors } from "../theme";
 import type { OverviewStats, StatusResponse } from "../types";
 
 const RANGES: [string, number][] = [
@@ -11,11 +22,36 @@ const RANGES: [string, number][] = [
   ["24 hours", 24 * 60 * 60 * 1000],
 ];
 
+const tooltipStyle = {
+  backgroundColor: colors.panel,
+  border: `1px solid ${colors.panelBorder}`,
+  borderRadius: 8,
+  fontSize: 12,
+} as const;
+
 export default function OverviewPage() {
   const [status, setStatus] = useState<StatusResponse | null>(null);
   const [stats, setStats] = useState<OverviewStats | null>(null);
   const [rangeMs, setRangeMs] = useState(RANGES[0][1]);
   const [error, setError] = useState<string | null>(null);
+  const setActions = usePageActions();
+
+  useEffect(() => {
+    setActions(
+      <select
+        value={rangeMs}
+        onChange={(e) => setRangeMs(Number(e.target.value))}
+        aria-label="Time range"
+      >
+        {RANGES.map(([label, ms]) => (
+          <option key={label} value={ms}>
+            {label}
+          </option>
+        ))}
+      </select>,
+    );
+    return () => setActions(null);
+  }, [rangeMs, setActions]);
 
   useEffect(() => {
     let alive = true;
@@ -52,68 +88,96 @@ export default function OverviewPage() {
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-        <h1>Overview</h1>
-        <label>
-          Range:{" "}
-          <select value={rangeMs} onChange={(e) => setRangeMs(Number(e.target.value))}>
-            {RANGES.map(([label, ms]) => (
-              <option key={label} value={ms}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-      {error && <p style={{ color: "#ff5c5c" }}>{error}</p>}
+      {error && <p style={{ color: colors.red }}>{error}</p>}
       {status && (
-        <p>
-          Guardrails server:{" "}
-          <strong style={{ color: healthy ? "#76b900" : "#ff5c5c" }}>
+        <p style={{ marginTop: 0, color: colors.muted, fontSize: 13 }}>
+          Guardrails server{" "}
+          <strong style={{ color: healthy ? colors.green : colors.red }}>
             {healthy ? "healthy" : "unreachable"}
           </strong>{" "}
-          ({status.guardrails.url}) — admin hook {status.admin_hook ? "installed" : "not installed"}
+          ({status.guardrails.url}) — admin hook{" "}
+          {status.admin_hook ? (
+            <span style={{ color: colors.green }}>installed</span>
+          ) : (
+            <span style={{ color: colors.amber }}>not installed</span>
+          )}
         </p>
       )}
-      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 24 }}>
-        <StatCard label="Requests" value={stats?.count} />
-        <StatCard label="Blocked" value={stats?.blocked} />
-        <StatCard label="Errors" value={stats?.errors} />
-        <StatCard label="p50 latency" value={formatMs(stats?.p50_ms)} />
-        <StatCard label="p95 latency" value={formatMs(stats?.p95_ms)} />
-        <StatCard label="Input tokens" value={stats?.input_tokens} />
-        <StatCard label="Output tokens" value={stats?.output_tokens} />
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 20 }}>
+        {stats ? (
+          <>
+            <StatCard label="Requests" value={stats.count} />
+            <StatCard label="Blocked" value={stats.blocked} />
+            <StatCard label="Errors" value={stats.errors} />
+            <StatCard label="p50 latency" value={formatMs(stats.p50_ms)} />
+            <StatCard label="p95 latency" value={formatMs(stats.p95_ms)} />
+            <StatCard label="Input tokens" value={stats.input_tokens} />
+            <StatCard label="Output tokens" value={stats.output_tokens} />
+          </>
+        ) : (
+          Array.from({ length: 7 }, (_, i) => (
+            <Skeleton key={i} width={130} height={64} />
+          ))
+        )}
       </div>
-      <h3>Requests over selected range</h3>
-      <div style={{ width: "100%", height: 260 }}>
-        <ResponsiveContainer>
-          <AreaChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="time" />
-            <YAxis allowDecimals={false} />
-            <Tooltip />
-            <Area type="monotone" dataKey="requests" stroke="#76b900" fill="#76b900" fillOpacity={0.2} />
-            <Area type="monotone" dataKey="blocked" stroke="#ff5c5c" fill="#ff5c5c" fillOpacity={0.3} />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
+      <Card title="Requests over selected range">
+        <div style={{ width: "100%", height: 260 }}>
+          <ResponsiveContainer>
+            <AreaChart data={chartData}>
+              <CartesianGrid stroke="#1f1f1f" strokeDasharray="3 3" />
+              <XAxis dataKey="time" stroke={colors.muted} tick={{ fontSize: 11 }} />
+              <YAxis allowDecimals={false} stroke={colors.muted} tick={{ fontSize: 11 }} />
+              <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: colors.muted }} />
+              <Area
+                type="monotone"
+                dataKey="requests"
+                name="requests"
+                stroke={colors.green}
+                fill={colors.green}
+                fillOpacity={0.2}
+              />
+              <Area
+                type="monotone"
+                dataKey="blocked"
+                name="blocked"
+                stroke={colors.red}
+                fill={colors.red}
+                fillOpacity={0.3}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </Card>
       {status && (
-        <>
-          <h3>Ingestion</h3>
-          <ul>
-            <li>Trace globs: {status.ingestion.trace_globs.join(", ") || "none"}</li>
-            <li>Prometheus URL: {status.ingestion.prom_url || "none"}</li>
-            <li>Records written: {status.ingestion.records_written} (duplicates skipped: {status.ingestion.records_dropped_duplicates})</li>
-            <li>
-              Malformed lines:{" "}
-              {Object.entries(status.ingestion.malformed).length
-                ? Object.entries(status.ingestion.malformed)
-                    .map(([k, v]) => `${k}: ${v}`)
-                    .join(", ")
-                : "none"}
-            </li>
-          </ul>
-        </>
+        <Card title="Ingestion" style={{ marginTop: 20 }}>
+          <dl style={{ margin: 0, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12, fontSize: 13 }}>
+            <div>
+              <dt style={{ color: colors.muted, fontSize: 12 }}>Trace globs</dt>
+              <dd style={{ margin: "2px 0 0" }}>{status.ingestion.trace_globs.join(", ") || "none"}</dd>
+            </div>
+            <div>
+              <dt style={{ color: colors.muted, fontSize: 12 }}>Prometheus URL</dt>
+              <dd style={{ margin: "2px 0 0" }}>{status.ingestion.prom_url || "none"}</dd>
+            </div>
+            <div>
+              <dt style={{ color: colors.muted, fontSize: 12 }}>Records written</dt>
+              <dd style={{ margin: "2px 0 0" }}>
+                {status.ingestion.records_written} (duplicates skipped:{" "}
+                {status.ingestion.records_dropped_duplicates})
+              </dd>
+            </div>
+            <div>
+              <dt style={{ color: colors.muted, fontSize: 12 }}>Malformed lines</dt>
+              <dd style={{ margin: "2px 0 0" }}>
+                {Object.entries(status.ingestion.malformed).length
+                  ? Object.entries(status.ingestion.malformed)
+                      .map(([k, v]) => `${k}: ${v}`)
+                      .join(", ")
+                  : "none"}
+              </dd>
+            </div>
+          </dl>
+        </Card>
       )}
     </div>
   );
@@ -121,9 +185,9 @@ export default function OverviewPage() {
 
 function StatCard({ label, value }: { label: string; value?: number | string | null }) {
   return (
-    <div style={{ border: "1px solid #333333", borderRadius: 8, padding: "12px 20px", minWidth: 110 }}>
-      <div style={{ fontSize: 12, color: "#9d9d9d" }}>{label}</div>
-      <div style={{ fontSize: 24, fontWeight: 600 }}>{value ?? "n/a"}</div>
+    <div style={{ ...cardStyle, borderLeft: `3px solid ${colors.green}`, padding: "12px 16px", minWidth: 120, flex: "1 1 120px" }}>
+      <div style={{ fontSize: 12, color: colors.muted }}>{label}</div>
+      <div style={{ fontSize: 26, fontWeight: 650 }}>{value ?? "n/a"}</div>
     </div>
   );
 }
