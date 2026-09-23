@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 
 import { api } from "../api";
 import { JsonBlock, StatusPill } from "../components";
+import { Button, Card, toast } from "../ui";
+import { colors } from "../theme";
 import type { ChallengeRunResult } from "../types";
 
 export default function ChallengesPage() {
@@ -11,7 +13,6 @@ export default function ChallengesPage() {
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [results, setResults] = useState<ChallengeRunResult[]>([]);
   const [running, setRunning] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([api.status(), api.challenges()])
@@ -20,7 +21,7 @@ export default function ChallengesPage() {
         if (s.guardrails.configs?.length) setConfigId(s.guardrails.configs[0].id);
         setChallenges(c.items);
       })
-      .catch((e) => setError((e as Error).message));
+      .catch((e) => toast((e as Error).message, "error"));
   }, []);
 
   const toggle = (i: number) => {
@@ -34,13 +35,13 @@ export default function ChallengesPage() {
 
   const run = async () => {
     setRunning(true);
-    setError(null);
     try {
       const ids = [...selected].map((i) => challenges[i]).map((c: any) => c.id).filter(Boolean);
       const data = await api.runChallenges({ config_id: configId || undefined, challenge_ids: ids });
       setResults(data.results);
+      toast(`Ran ${data.results.length} challenge(s)`, "success");
     } catch (e) {
-      setError((e as Error).message);
+      toast((e as Error).message, "error");
     } finally {
       setRunning(false);
     }
@@ -51,50 +52,60 @@ export default function ChallengesPage() {
 
   return (
     <div>
-      <h1>Challenges</h1>
-      <p style={{ fontSize: 13, color: "#9d9d9d" }}>
+      <p style={{ fontSize: 13, color: colors.muted, marginTop: 0 }}>
         Red-teaming challenge prompts served by the guardrails server
         (/v1/challenges). Runs are recorded with source=challenge.
       </p>
-      {error && <p style={{ color: "#ff5c5c" }}>{error}</p>}
-      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-        <label>
-          Config:{" "}
-          <select value={configId} onChange={(e) => setConfigId(e.target.value)}>
-            <option value="">(default)</option>
-            {configs.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.id}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button onClick={run} disabled={running}>
-          {running ? "Running..." : `Run selected (${selected.size || "all"})`}
-        </button>
-      </div>
-      {challenges.map((c: any, i) => (
-        <div key={i} style={{ display: "flex", gap: 8, marginBottom: 4, fontSize: 13 }}>
-          <input
-            type="checkbox"
-            checked={selected.has(i)}
-            onChange={() => toggle(i)}
-            disabled={!c.id}
-            title={c.id ? undefined : "This challenge has no id and can only run via 'Run all'"}
-          />
-          <span style={{ color: "#9d9d9d", minWidth: 60 }}>{c.id ?? `#${i}`}</span>
-          <span>{c.input ?? c.prompt ?? JSON.stringify(c)}</span>
+      <Card
+        title="Challenges"
+        actions={
+          <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <select value={configId} onChange={(e) => setConfigId(e.target.value)} aria-label="Config">
+              <option value="">(default)</option>
+              {configs.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.id}
+                </option>
+              ))}
+            </select>
+            <Button variant="primary" onClick={run} disabled={running}>
+              {running ? "Running..." : `Run selected (${selected.size || "all"})`}
+            </Button>
+          </span>
+        }
+        style={{ marginBottom: 16 }}
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {challenges.map((c: any, i) => (
+            <label
+              key={i}
+              style={{ display: "flex", gap: 10, alignItems: "baseline", fontSize: 13, cursor: "pointer" }}
+            >
+              <input
+                type="checkbox"
+                checked={selected.has(i)}
+                onChange={() => toggle(i)}
+                disabled={!c.id}
+                title={c.id ? undefined : "This challenge has no id and can only run via 'Run all'"}
+              />
+              <span style={{ color: colors.muted, minWidth: 60, fontFamily: "monospace" }}>{c.id ?? `#${i}`}</span>
+              <span>{c.input ?? c.prompt ?? JSON.stringify(c)}</span>
+            </label>
+          ))}
         </div>
-      ))}
+      </Card>
       {results.map((r, i) => (
-        <div key={i} style={{ border: "1px solid #333333", borderRadius: 8, padding: 12, marginTop: 12 }}>
-          <h4 style={{ margin: 0 }}>
-            {r.challenge_id ?? `challenge ${i}`}{" "}
+        <Card
+          key={i}
+          title={r.challenge_id ?? `challenge ${i}`}
+          actions={
             <StatusPill status={r.status_code === 200 ? (wasBlocked(r) ? "blocked" : "allowed") : "error"} />
-          </h4>
-          <p style={{ fontSize: 13 }}>{r.challenge?.input ?? (r.challenge as any)?.prompt ?? ""}</p>
+          }
+          style={{ marginBottom: 12 }}
+        >
+          <p style={{ fontSize: 13, marginTop: 0 }}>{r.challenge?.input ?? (r.challenge as any)?.prompt ?? ""}</p>
           <JsonBlock data={r.response} />
-        </div>
+        </Card>
       ))}
     </div>
   );

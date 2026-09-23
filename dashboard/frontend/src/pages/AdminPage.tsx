@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 
 import { api } from "../api";
 import { JsonBlock } from "../components";
+import { Button, Card, toast } from "../ui";
+import { colors } from "../theme";
 import type { StatusResponse } from "../types";
 
 const HOOK_INSTRUCTIONS = `The guardrails server does not have the admin hook installed.
@@ -27,7 +29,6 @@ Then restart the guardrails server.`;
 export default function AdminPage() {
   const [status, setStatus] = useState<StatusResponse | null>(null);
   const [configId, setConfigId] = useState("");
-  const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(() => {
@@ -43,14 +44,12 @@ export default function AdminPage() {
   useEffect(load, [load]);
 
   const reload = async () => {
-    setMessage(null);
-    setError(null);
     try {
       const result: any = await api.adminReload(configId || undefined);
-      setMessage(`Reloaded: ${JSON.stringify(result)}`);
+      toast(`Reloaded: ${JSON.stringify(result)}`, "success");
       setTimeout(load, 1000);
     } catch (e) {
-      setError((e as Error).message);
+      toast((e as Error).message, "error");
     }
   };
 
@@ -58,50 +57,84 @@ export default function AdminPage() {
 
   return (
     <div>
-      <h1>Admin</h1>
-      {error && <p style={{ color: "#ff5c5c", whiteSpace: "pre-wrap" }}>{error}</p>}
-      {message && <p style={{ color: "#76b900" }}>{message}</p>}
-      <h3>Server</h3>
-      {status && (
-        <ul>
-          <li>
-            Health:{" "}
-            <strong style={{ color: status.guardrails.healthy ? "#76b900" : "#ff5c5c" }}>
-              {status.guardrails.healthy ? "healthy" : "unreachable"}
-            </strong>{" "}
-            ({status.guardrails.url})
-          </li>
-          <li>Admin hook: {status.admin_hook ? "installed" : "not installed"}</li>
-        </ul>
-      )}
-      <h3>Configs</h3>
-      {configs.length === 0 && <em>No configs reported (server unreachable or none loaded).</em>}
-      <ul>
-        {configs.map((c) => (
-          <li key={c.id}>{c.id}</li>
-        ))}
-      </ul>
-      <h3>Models</h3>
-      <JsonBlock data={status?.guardrails.models ?? null} />
-      <h3>Reload config</h3>
-      {status && !status.admin_hook && (
-        <pre style={{ background: "#26200f", border: "1px solid #f79009", color: "#f79009", borderRadius: 6, padding: 12, fontSize: 12, whiteSpace: "pre-wrap" }}>
-          {HOOK_INSTRUCTIONS}
-        </pre>
-      )}
-      <div style={{ display: "flex", gap: 8 }}>
-        <select value={configId} onChange={(e) => setConfigId(e.target.value)}>
-          <option value="">all configs</option>
-          {configs.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.id}
-            </option>
-          ))}
-        </select>
-        <button onClick={reload} disabled={!status?.admin_hook}>
-          Reload
-        </button>
+      {error && <p style={{ color: colors.red, whiteSpace: "pre-wrap" }}>{error}</p>}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16, marginBottom: 16 }}>
+        <Card title="Server">
+          <dl style={{ margin: 0, fontSize: 13 }}>
+            <div style={{ marginBottom: 8 }}>
+              <dt style={{ color: colors.muted, fontSize: 12 }}>Health</dt>
+              <dd style={{ margin: "2px 0 0" }}>
+                <strong style={{ color: status?.guardrails.healthy ? colors.green : colors.red }}>
+                  {status?.guardrails.healthy ? "healthy" : "unreachable"}
+                </strong>{" "}
+                <span style={{ color: colors.muted }}>({status?.guardrails.url})</span>
+              </dd>
+            </div>
+            <div>
+              <dt style={{ color: colors.muted, fontSize: 12 }}>Admin hook</dt>
+              <dd style={{ margin: "2px 0 0", color: status?.admin_hook ? colors.green : colors.amber }}>
+                {status?.admin_hook ? "installed" : "not installed"}
+              </dd>
+            </div>
+          </dl>
+        </Card>
+        <Card title="Configs">
+          {configs.length === 0 ? (
+            <em>No configs reported (server unreachable or none loaded).</em>
+          ) : (
+            <span style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {configs.map((c) => (
+                <span
+                  key={c.id}
+                  style={{
+                    border: `1px solid ${colors.panelBorder}`,
+                    borderRadius: 999,
+                    padding: "3px 12px",
+                    fontSize: 12,
+                    fontFamily: "monospace",
+                  }}
+                >
+                  {c.id}
+                </span>
+              ))}
+            </span>
+          )}
+        </Card>
       </div>
+      <Card title="Models" style={{ marginBottom: 16 }}>
+        <JsonBlock data={status?.guardrails.models ?? null} />
+      </Card>
+      <Card title="Reload config">
+        {status && !status.admin_hook && (
+          <pre
+            style={{
+              background: "#26200f",
+              border: `1px solid ${colors.amber}`,
+              color: colors.amber,
+              borderRadius: 6,
+              padding: 12,
+              fontSize: 12,
+              whiteSpace: "pre-wrap",
+              marginTop: 0,
+            }}
+          >
+            {HOOK_INSTRUCTIONS}
+          </pre>
+        )}
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <select value={configId} onChange={(e) => setConfigId(e.target.value)} aria-label="Config">
+            <option value="">all configs</option>
+            {configs.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.id}
+              </option>
+            ))}
+          </select>
+          <Button variant="primary" onClick={reload} disabled={!status?.admin_hook}>
+            Reload
+          </Button>
+        </div>
+      </Card>
     </div>
   );
 }
