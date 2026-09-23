@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 
 import { api } from "../api";
 import { SourceTag, StatusPill, formatTs } from "../components";
+import { Button, Card, EmptyState } from "../ui";
+import { colors } from "../theme";
 import type { RecordsResponse } from "../types";
 import RequestDetail from "./RequestDetail";
 
@@ -58,7 +60,6 @@ export default function RequestsPage() {
   useEffect(() => {
     if (!selectedId) {
       setSelected(null);
-      setError(null);
       return;
     }
     let stale = false;
@@ -86,96 +87,123 @@ export default function RequestsPage() {
 
   return (
     <div>
-      <h1>Requests</h1>
-      {error && <p style={{ color: "#ff5c5c" }}>{error}</p>}
-      <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
-        <select value={rangeMs} onChange={(e) => { setOffset(0); setSelectedId(null); setRangeMs(Number(e.target.value)); }}>
-          {RANGES.map(([label, ms]) => (
-            <option key={label} value={ms}>
-              {label}
-            </option>
-          ))}
-        </select>
-        <select value={filters.configId} onChange={(e) => update({ configId: e.target.value })}>
-          <option value="">any config</option>
-          {configs.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.id}
-            </option>
-          ))}
-        </select>
-        <input
-          placeholder="rail name..."
-          value={filters.rail}
-          onChange={(e) => update({ rail: e.target.value })}
-          style={{ width: 140 }}
-        />
-        <select value={filters.status} onChange={(e) => update({ status: e.target.value })}>
-          <option value="">any status</option>
-          <option value="allowed">allowed</option>
-          <option value="blocked">blocked</option>
-          <option value="error">error</option>
-        </select>
-        <select value={filters.source} onChange={(e) => update({ source: e.target.value })}>
-          <option value="">any source</option>
-          <option value="proxy">proxy</option>
-          <option value="trace_file">trace_file</option>
-          <option value="console">console</option>
-          <option value="check">check</option>
-          <option value="challenge">challenge</option>
-        </select>
-        <input
-          placeholder="search input/output..."
-          value={filters.search}
-          onChange={(e) => update({ search: e.target.value })}
-          style={{ flex: 1 }}
-        />
-        <button onClick={load}>Refresh</button>
-      </div>
-      <p style={{ fontSize: 13, color: "#9d9d9d" }}>{data.total} records</p>
-      <table style={{ borderCollapse: "collapse", width: "100%", fontSize: 13 }}>
-        <thead>
-          <tr style={{ textAlign: "left", borderBottom: "2px solid #333333" }}>
-            <th>Time</th><th>Source</th><th>Config</th><th>Status</th><th>Input</th><th>Output</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.items.map((r) => (
-            <tr
-              key={r.id}
-              onClick={() => setSelectedId(r.id)}
-              style={{
-                borderBottom: "1px solid #2a2a2a",
-                cursor: "pointer",
-                background: r.id === selectedId ? "rgba(118, 185, 0, 0.15)" : undefined,
-              }}
+      {error && <p style={{ color: colors.red }}>{error}</p>}
+      <Card style={{ marginBottom: 16 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          <select
+            value={rangeMs}
+            onChange={(e) => { setOffset(0); setSelectedId(null); setRangeMs(Number(e.target.value)); }}
+            aria-label="Time range"
+          >
+            {RANGES.map(([label, ms]) => (
+              <option key={label} value={ms}>
+                {label}
+              </option>
+            ))}
+          </select>
+          <select
+            value={filters.configId}
+            onChange={(e) => update({ configId: e.target.value })}
+            aria-label="Config"
+          >
+            <option value="">any config</option>
+            {configs.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.id}
+              </option>
+            ))}
+          </select>
+          <input
+            placeholder="rail name..."
+            value={filters.rail}
+            onChange={(e) => update({ rail: e.target.value })}
+            style={{ width: 140 }}
+          />
+          <select
+            value={filters.status}
+            onChange={(e) => update({ status: e.target.value })}
+            aria-label="Status"
+          >
+            <option value="">any status</option>
+            <option value="allowed">allowed</option>
+            <option value="blocked">blocked</option>
+            <option value="error">error</option>
+          </select>
+          <select
+            value={filters.source}
+            onChange={(e) => update({ source: e.target.value })}
+            aria-label="Source"
+          >
+            <option value="">any source</option>
+            <option value="proxy">proxy</option>
+            <option value="trace_file">trace_file</option>
+            <option value="console">console</option>
+            <option value="check">check</option>
+            <option value="challenge">challenge</option>
+          </select>
+          <input
+            placeholder="search input/output..."
+            value={filters.search}
+            onChange={(e) => update({ search: e.target.value })}
+            style={{ flex: 1, minWidth: 160 }}
+          />
+          <Button onClick={load}>Refresh</Button>
+        </div>
+      </Card>
+      <Card
+        title={`${data.total} records`}
+        actions={
+          <span style={{ display: "flex", gap: 8 }}>
+            <Button disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}>
+              Previous
+            </Button>
+            <Button
+              disabled={offset + PAGE_SIZE >= data.total}
+              onClick={() => setOffset(offset + PAGE_SIZE)}
             >
-              <td style={{ whiteSpace: "nowrap" }}>{formatTs(r.ts)}</td>
-              <td><SourceTag source={r.source} /></td>
-              <td>{r.config_id ?? ""}</td>
-              <td><StatusPill status={r.status} /></td>
-              <td style={{ maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {r.input_summary}
-              </td>
-              <td style={{ maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {r.output_summary}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {data.items.length === 0 && !error && <p style={{ color: "#9d9d9d" }}>No records match the current filters.</p>}
-      <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
-        <button disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}>
-          Previous
-        </button>
-        <button
-          disabled={offset + PAGE_SIZE >= data.total}
-          onClick={() => setOffset(offset + PAGE_SIZE)}
-        >
-          Next
-        </button>
-      </div>
+              Next
+            </Button>
+          </span>
+        }
+      >
+        {data.items.length === 0 && !error ? (
+          <EmptyState
+            title="No records match the current filters"
+            hint="Send a request from the Console page or widen the time range."
+          />
+        ) : (
+          <table className="nv-table">
+            <thead>
+              <tr>
+                <th>Time</th><th>Source</th><th>Config</th><th>Status</th><th>Input</th><th>Output</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.items.map((r) => (
+                <tr
+                  key={r.id}
+                  onClick={() => setSelectedId(r.id)}
+                  style={{
+                    cursor: "pointer",
+                    background: r.id === selectedId ? "rgba(118, 185, 0, 0.15)" : undefined,
+                  }}
+                >
+                  <td style={{ whiteSpace: "nowrap" }}>{formatTs(r.ts)}</td>
+                  <td><SourceTag source={r.source} /></td>
+                  <td>{r.config_id ?? ""}</td>
+                  <td><StatusPill status={r.status} /></td>
+                  <td style={{ maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {r.input_summary}
+                  </td>
+                  <td style={{ maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {r.output_summary}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Card>
       {selected && <RequestDetail record={selected} />}
     </div>
   );

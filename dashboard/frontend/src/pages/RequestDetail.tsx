@@ -1,30 +1,38 @@
 import { JsonBlock, RailBars, SourceTag, StatusPill, formatTs } from "../components";
+import { Card } from "../ui";
+import { colors } from "../theme";
 import type { RequestRecord } from "../types";
 
 export default function RequestDetail({ record }: { record: RequestRecord }) {
   return (
-    <div style={{ border: "1px solid #333333", borderRadius: 8, padding: 16, marginTop: 16 }}>
-      <h3 style={{ marginTop: 0 }}>
-        Request detail <StatusPill status={record.status} /> <SourceTag source={record.source} />
-      </h3>
-      <p style={{ fontSize: 13, color: "#9d9d9d" }}>
+    <Card
+      title="Request detail"
+      actions={
+        <span style={{ display: "flex", gap: 6 }}>
+          <StatusPill status={record.status} />
+          <SourceTag source={record.source} />
+        </span>
+      }
+      style={{ marginTop: 16 }}
+    >
+      <p style={{ fontSize: 13, color: colors.muted, marginTop: 0 }}>
         {formatTs(record.ts)} — config: {record.config_id ?? "n/a"} — thread: {record.thread_id ?? "n/a"}
         {record.interaction_id ? ` — interaction: ${record.interaction_id}` : ""}
       </p>
-      {record.error && <p style={{ color: "#ff5c5c" }}>Error: {record.error}</p>}
-      <h4>Activated rails</h4>
+      {record.error && <p style={{ color: colors.red }}>Error: {record.error}</p>}
+      <h4 style={{ color: colors.muted, fontSize: 12, textTransform: "uppercase", letterSpacing: 1 }}>Activated rails</h4>
       <RailBars rails={record.rails} />
-      <h4>LLM calls</h4>
+      <h4 style={{ color: colors.muted, fontSize: 12, textTransform: "uppercase", letterSpacing: 1 }}>LLM calls</h4>
       {record.llm_calls.length ? (
-        <table style={{ borderCollapse: "collapse", width: "100%", fontSize: 13 }}>
+        <table className="nv-table">
           <thead>
-            <tr style={{ textAlign: "left", borderBottom: "1px solid #333333" }}>
+            <tr>
               <th>Task</th><th>Model</th><th>Prompt tok</th><th>Completion tok</th><th>Total</th><th>Duration</th><th>Cache</th>
             </tr>
           </thead>
           <tbody>
             {record.llm_calls.map((c, i) => (
-              <tr key={i} style={{ borderBottom: "1px solid #2a2a2a" }}>
+              <tr key={i}>
                 <td>{c.task ?? ""}</td>
                 <td>{c.model ?? "unknown"}</td>
                 <td>{c.prompt_tokens ?? ""}</td>
@@ -41,7 +49,7 @@ export default function RequestDetail({ record }: { record: RequestRecord }) {
       )}
       {Object.keys(record.phase_durations).length > 0 && (
         <>
-          <h4>Phase durations</h4>
+          <h4 style={{ color: colors.muted, fontSize: 12, textTransform: "uppercase", letterSpacing: 1 }}>Phase durations</h4>
           <ul>
             {Object.entries(record.phase_durations).map(([k, v]) => (
               <li key={k}>
@@ -55,10 +63,10 @@ export default function RequestDetail({ record }: { record: RequestRecord }) {
           </ul>
         </>
       )}
-      <h4>Raw request</h4>
+      <h4 style={{ color: colors.muted, fontSize: 12, textTransform: "uppercase", letterSpacing: 1 }}>Raw request</h4>
       <JsonBlock data={record.raw_request} />
-      <h4>Raw response</h4>
+      <h4 style={{ color: colors.muted, fontSize: 12, textTransform: "uppercase", letterSpacing: 1 }}>Raw response</h4>
       <JsonBlock data={record.raw_response} />
-    </div>
+    </Card>
   );
 }
