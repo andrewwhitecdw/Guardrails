@@ -7,7 +7,15 @@
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='14' fill='%23000000'/%3E%3Cg fill='none' stroke='%2376b900' stroke-width='8' stroke-linecap='round'%3E%3Cpath d='M20 46 A30 30 0 0 1 80 46'/%3E%3Cpath d='M32 46 A18 18 0 0 1 68 46'/%3E%3Cpath d='M44 46 A6 6 0 0 1 56 46'/%3E%3Cpath d='M20 58 A30 30 0 0 0 80 58'/%3E%3Cpath d='M32 58 A18 18 0 0 0 68 58'/%3E%3C/g%3E%3C/svg%3E" />
     <style>
       html, body { margin: 0; background: #0f0f0f; }
-      input, select, textarea, button { background: #1a1a1a; color: #e8e8e8; border: 1px solid #333333; border-radius: 4px; }
+      *, *::before, *::after { box-sizing: border-box; }
+      input, select, textarea, button { background: #1a1a1a; color: #e8e8e8; border: 1px solid #333333; border-radius: 4px; padding: 6px 8px; font: inherit; }
+      input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible { outline: 2px solid rgba(118, 185, 0, 0.5); outline-offset: 1px; }
+      .nv-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+      .nv-table thead th { text-align: left; padding: 8px 10px; border-bottom: 2px solid #2a2a2a; color: #9d9d9d; font-weight: 600; white-space: nowrap; }
+      .nv-table tbody td { padding: 8px 10px; border-bottom: 1px solid #1f1f1f; vertical-align: top; }
+      .nv-table tbody tr:hover { background: #1a1a1a; }
+      @keyframes nv-pulse { 0%, 100% { opacity: 0.45; } 50% { opacity: 0.9; } }
+      @keyframes nv-spin { to { transform: rotate(360deg); } }
     </style>
   </head>
   <body>
