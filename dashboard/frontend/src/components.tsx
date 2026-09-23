@@ -1,17 +1,20 @@
+import { cardStyle, colors } from "./theme";
 import type { RailInfo } from "./types";
 
 export function StatusPill({ status }: { status: string }) {
   const background =
-    status === "blocked" ? "#ff5c5c" : status === "error" ? "#f79009" : "#76b900";
+    status === "blocked" ? colors.red : status === "error" ? colors.amber : colors.green;
   return (
     <span
       style={{
         background,
-        color: "white",
+        color: "#000000",
         borderRadius: 10,
         padding: "2px 10px",
-        fontSize: 12,
+        fontSize: 11,
+        fontWeight: 600,
         textTransform: "uppercase",
+        letterSpacing: 0.5,
       }}
     >
       {status}
@@ -21,7 +24,17 @@ export function StatusPill({ status }: { status: string }) {
 
 export function SourceTag({ source }: { source: string }) {
   return (
-    <span style={{ color: "#9d9d9d", fontSize: 12, border: "1px solid #333333", borderRadius: 4, padding: "1px 6px" }}>
+    <span
+      style={{
+        color: colors.muted,
+        fontSize: 11,
+        border: `1px solid ${colors.panelBorder}`,
+        borderRadius: 10,
+        padding: "1px 8px",
+        textTransform: "uppercase",
+        letterSpacing: 0.5,
+      }}
+    >
       {source}
     </span>
   );
@@ -32,13 +45,13 @@ export function JsonBlock({ data }: { data: unknown }) {
   return (
     <pre
       style={{
+        ...cardStyle,
         background: "#141414",
-        border: "1px solid #333333",
-        borderRadius: 6,
         padding: 12,
         overflow: "auto",
         maxHeight: 320,
         fontSize: 12,
+        margin: 0,
       }}
     >
       {JSON.stringify(data, null, 2)}
@@ -61,12 +74,12 @@ export function RailBars({ rails }: { rails: RailInfo[] }) {
           <div
             style={{
               height: 12,
-              background: rail.stop ? "#ff5c5c" : "#76b900",
+              background: rail.stop ? colors.red : colors.green,
               borderRadius: 3,
               width: `${Math.max(2, ((rail.duration ?? 0) / max) * 100)}%`,
             }}
           />
-          <span style={{ fontSize: 12, color: "#9d9d9d" }}>
+          <span style={{ fontSize: 12, color: colors.muted }}>
             {rail.duration != null ? `${Math.round(rail.duration * 1000)} ms` : "n/a"}
           </span>
         </div>
