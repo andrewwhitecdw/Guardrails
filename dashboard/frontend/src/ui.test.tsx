@@ -1,7 +1,11 @@
 import { act, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { Button, EmptyState, Skeleton, Spinner, Toaster, toast } from "./ui";
+import { Button, EmptyState, Skeleton, Spinner, Toaster, resetToastsForTests, toast } from "./ui";
+
+beforeEach(() => {
+  resetToastsForTests();
+});
 
 describe("Button", () => {
   it("renders primary variant with green background", () => {
@@ -48,5 +52,18 @@ describe("toast", () => {
     render(<Toaster />);
     act(() => toast("Saved", "success"));
     expect(screen.getByText("Saved")).toBeTruthy();
+  });
+
+  it("auto-dismisses the toast after 4 seconds", () => {
+    vi.useFakeTimers();
+    try {
+      render(<Toaster />);
+      act(() => toast("Bye"));
+      expect(screen.getByText("Bye")).toBeTruthy();
+      act(() => vi.advanceTimersByTime(4000));
+      expect(screen.queryByText("Bye")).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

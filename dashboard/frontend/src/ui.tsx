@@ -31,7 +31,7 @@ export function Card({
             marginBottom: 12,
           }}
         >
-          <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>{title}</h3>
+          {title && <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>{title}</h3>}
           {actions}
         </header>
       )}
@@ -42,29 +42,30 @@ export function Card({
 
 type ButtonVariant = "primary" | "secondary" | "danger";
 
+const variantStyle: Record<ButtonVariant, CSSProperties> = {
+  primary: {
+    backgroundColor: colors.green,
+    color: "#000000",
+    border: `1px solid ${colors.green}`,
+    fontWeight: 600,
+  },
+  secondary: {
+    backgroundColor: "#1a1a1a",
+    color: colors.text,
+    border: `1px solid ${colors.panelBorder}`,
+  },
+  danger: {
+    backgroundColor: "transparent",
+    color: colors.red,
+    border: `1px solid ${colors.red}`,
+  },
+};
+
 export function Button({
   variant = "secondary",
   style,
   ...rest
 }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant }) {
-  const variantStyle: Record<ButtonVariant, CSSProperties> = {
-    primary: {
-      backgroundColor: colors.green,
-      color: "#000000",
-      border: `1px solid ${colors.green}`,
-      fontWeight: 600,
-    },
-    secondary: {
-      backgroundColor: "#1a1a1a",
-      color: colors.text,
-      border: `1px solid ${colors.panelBorder}`,
-    },
-    danger: {
-      backgroundColor: "transparent",
-      color: colors.red,
-      border: `1px solid ${colors.red}`,
-    },
-  };
   return (
     <button
       {...rest}
@@ -147,6 +148,12 @@ const toastListeners = new Set<(items: ToastItem[]) => void>();
 
 function emitToasts() {
   for (const listener of toastListeners) listener(toasts);
+}
+
+export function resetToastsForTests() {
+  toasts = [];
+  nextToastId = 1;
+  emitToasts();
 }
 
 export function toast(message: string, kind: ToastKind = "info") {
