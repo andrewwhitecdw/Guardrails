@@ -60,6 +60,7 @@ export default function RequestsPage() {
   useEffect(() => {
     if (!selectedId) {
       setSelected(null);
+      setError(null);
       return;
     }
     let stale = false;
